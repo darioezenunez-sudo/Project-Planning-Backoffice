@@ -29,11 +29,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Lint
-        run: pnpm run lint
-
       - name: Type check
         run: pnpm run type-check
+      
+      - name: Lint
+        run: pnpm run lint      
 
       - name: Test
         run: pnpm run test:run
