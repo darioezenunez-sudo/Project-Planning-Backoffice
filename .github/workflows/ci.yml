@@ -1,10 +1,10 @@
 name: CI
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   ci:
@@ -14,21 +14,26 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.15.9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm run lint
+      - name: Generate Prisma Client
+        run: pnpm run db:generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Type check
         run: pnpm run type-check
+      
+      - name: Lint
+        run: pnpm run lint      
 
       - name: Test
         run: pnpm run test:run
@@ -36,6 +41,6 @@ jobs:
       - name: Build
         run: pnpm run build
         env:
-          SKIP_ENV_VALIDATION: 1
-          DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
-          DIRECT_URL: "postgresql://user:pass@localhost:5432/db"
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
