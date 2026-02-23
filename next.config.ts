@@ -22,8 +22,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+  async headers() {
+    const headers = await Promise.resolve([
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]);
+    return headers;
   },
 };
 
