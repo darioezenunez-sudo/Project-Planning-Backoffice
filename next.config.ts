@@ -22,7 +22,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  async headers() {
+  headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
 };
