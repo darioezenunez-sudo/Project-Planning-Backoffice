@@ -1,0 +1,11 @@
+# Preview deploys — conectar repo a Vercel y configurar en Dashboard
+# Vercel crea preview por PR automáticamente
+name: Deploy Preview
+on:
+  pull_request:
+    branches: [main, develop]
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy preview handled by Vercel"

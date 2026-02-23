@@ -1,0 +1,7 @@
+export default function RootLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="animate-pulse text-neutral-500">Cargando…</div>
+    </div>
+  );
+}

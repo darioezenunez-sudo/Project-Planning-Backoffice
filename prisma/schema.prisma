@@ -1,0 +1,400 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+enum EchelonState {
+  OPEN
+  IN_PROGRESS
+  CLOSING
+  CLOSURE_REVIEW
+  CLOSED
+}
+
+enum SummaryState {
+  DRAFT
+  REVIEW
+  EDITED
+  VALIDATED
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  TRANSITION
+  LOGIN
+  LOGOUT
+  DEVICE_ENROLLED
+  DEVICE_REVOKED
+  INVITE_SENT
+  INVITE_ACCEPTED
+}
+
+// ─── Identity & Multi-Tenancy ─────────────────────────────────────────────────
+
+/// Tenant root. Every org-scoped entity carries organizationId for RLS.
+model Organization {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  version   Int       @default(1)
+
+  members   OrganizationMember[]
+  companies Company[]
+
+  @@map("organizations")
+}
+
+/// Mirror of Supabase auth.users. id = Supabase auth UUID.
+model User {
+  id        String    @id
+  email     String    @unique
+  name      String?
+  avatarUrl String?   @map("avatar_url")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  version   Int       @default(1)
+
+  memberships OrganizationMember[]
+
+  @@map("users")
+}
+
+/// Join table: user role within an organization.
+model OrganizationMember {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  userId         String    @map("user_id")
+  role           Role
+  invitedAt      DateTime? @map("invited_at")
+  joinedAt       DateTime? @map("joined_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+// ─── Core Domain ──────────────────────────────────────────────────────────────
+
+model Company {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  name           String
+  description    String?
+  industry       String?
+  website        String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  products     Product[]
+
+  @@index([organizationId])
+  @@map("companies")
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  companyId      String    @map("company_id")
+  name           String
+  description    String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  echelons     Echelon[]
+  usageRecords UsageRecord[]
+
+  @@index([organizationId])
+  @@index([companyId])
+  @@map("products")
+}
+
+// ─── Echelon Lifecycle ────────────────────────────────────────────────────────
+
+/// FSM: OPEN → IN_PROGRESS → CLOSING → CLOSURE_REVIEW → CLOSED
+model Echelon {
+  id              String       @id @default(uuid())
+  organizationId  String       @map("organization_id")
+  productId       String       @map("product_id")
+  name            String
+  state           EchelonState @default(OPEN)
+  /// JSON blueprint that defines the type and rules for this echelon.
+  configBlueprint Json?        @map("config_blueprint")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  version         Int          @default(1)
+
+  product        Product         @relation(fields: [productId], references: [id])
+  sessions       Session[]
+  requiredFields RequiredField[]
+  attachments    Attachment[]
+  usageRecords   UsageRecord[]
+
+  @@index([organizationId, state])
+  @@index([productId])
+  @@map("echelons")
+}
+
+model RequiredField {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  echelonId      String    @map("echelon_id")
+  label          String
+  description    String?
+  isMet          Boolean   @default(false) @map("is_met")
+  metAt          DateTime? @map("met_at")
+  /// userId (plain foreign key — no Prisma relation; FK enforced in SQL migration)
+  metByUserId    String?   @map("met_by_user_id")
+  sortOrder      Int       @default(0) @map("sort_order")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  echelon       Echelon        @relation(fields: [echelonId], references: [id])
+  decisionLinks DecisionLink[]
+
+  @@index([echelonId])
+  @@index([organizationId])
+  @@map("required_fields")
+}
+
+/// Dependency matrix link between a RequiredField and/or an ExecutiveSummary.
+model DecisionLink {
+  id                 String    @id @default(uuid())
+  organizationId     String    @map("organization_id")
+  requiredFieldId    String?   @map("required_field_id")
+  executiveSummaryId String?   @map("executive_summary_id")
+  label              String
+  linkUrl            String?   @map("link_url")
+  linkType           String?   @map("link_type")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  version            Int       @default(1)
+
+  requiredField    RequiredField?    @relation(fields: [requiredFieldId], references: [id])
+  executiveSummary ExecutiveSummary? @relation(fields: [executiveSummaryId], references: [id])
+
+  @@index([requiredFieldId])
+  @@index([executiveSummaryId])
+  @@index([organizationId])
+  @@map("decision_links")
+}
+
+model Session {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  echelonId      String    @map("echelon_id")
+  sessionNumber  Int       @map("session_number")
+  conductedAt    DateTime? @map("conducted_at")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  echelon            Echelon            @relation(fields: [echelonId], references: [id])
+  executiveSummaries ExecutiveSummary[]
+
+  @@index([echelonId])
+  @@index([organizationId])
+  @@map("sessions")
+}
+
+/// FSM: DRAFT → REVIEW → EDITED → VALIDATED
+/// echelonId is denormalized (derives from session.echelonId) for query performance.
+model ExecutiveSummary {
+  id             String       @id @default(uuid())
+  organizationId String       @map("organization_id")
+  sessionId      String       @map("session_id")
+  /// Denormalized from session.echelonId for efficient context-bundle queries (Fase 3).
+  echelonId      String       @map("echelon_id")
+  state          SummaryState @default(DRAFT)
+  rawContent     String?      @map("raw_content")
+  editedContent  String?      @map("edited_content")
+  reviewedAt     DateTime?    @map("reviewed_at")
+  editedAt       DateTime?    @map("edited_at")
+  validatedAt    DateTime?    @map("validated_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+  version        Int          @default(1)
+
+  session       Session        @relation(fields: [sessionId], references: [id])
+  attachments   Attachment[]
+  decisionLinks DecisionLink[]
+
+  @@index([sessionId, state])
+  @@index([echelonId])
+  @@index([organizationId])
+  @@map("executive_summaries")
+}
+
+model Attachment {
+  id                 String    @id @default(uuid())
+  organizationId     String    @map("organization_id")
+  executiveSummaryId String?   @map("executive_summary_id")
+  echelonId          String?   @map("echelon_id")
+  filename           String
+  /// Supabase Storage object key.
+  storageKey         String    @map("storage_key")
+  mimeType           String    @map("mime_type")
+  fileSize           Int       @map("file_size")
+  /// userId (plain FK — no Prisma relation; FK enforced in SQL migration)
+  uploadedByUserId   String?   @map("uploaded_by_user_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  version            Int       @default(1)
+
+  executiveSummary ExecutiveSummary? @relation(fields: [executiveSummaryId], references: [id])
+  echelon          Echelon?          @relation(fields: [echelonId], references: [id])
+
+  @@index([executiveSummaryId])
+  @@index([echelonId])
+  @@index([organizationId])
+  @@map("attachments")
+}
+
+// ─── Assistant Integration ────────────────────────────────────────────────────
+
+/// Assistant machine enrolled for a user within an org.
+model Device {
+  id             String    @id @default(uuid())
+  /// organizationId (plain FK — no Prisma relation; FK enforced in SQL migration)
+  organizationId String    @map("organization_id")
+  machineId      String    @map("machine_id")
+  /// userId (plain FK — no Prisma relation; FK enforced in SQL migration)
+  userId         String    @map("user_id")
+  osInfo         Json?     @map("os_info")
+  enrolledAt     DateTime  @default(now()) @map("enrolled_at")
+  lastSeenAt     DateTime? @map("last_seen_at")
+  revokedAt      DateTime? @map("revoked_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  @@unique([organizationId, machineId])
+  @@index([machineId, userId])
+  @@index([organizationId])
+  @@map("devices")
+}
+
+// ─── Budget Tracking ──────────────────────────────────────────────────────────
+
+/// LLM token usage per org/product/echelon for a given month.
+model UsageRecord {
+  id             String    @id @default(uuid())
+  /// organizationId (plain FK — no Prisma relation; FK enforced in SQL migration)
+  organizationId String    @map("organization_id")
+  productId      String?   @map("product_id")
+  echelonId      String?   @map("echelon_id")
+  /// ISO month string e.g. "2026-02".
+  monthYear      String    @map("month_year")
+  tokens         Int       @default(0)
+  costCents      Int       @default(0) @map("cost_cents")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  version        Int       @default(1)
+
+  product Product? @relation(fields: [productId], references: [id])
+  echelon Echelon? @relation(fields: [echelonId], references: [id])
+
+  @@index([organizationId, monthYear])
+  @@index([echelonId])
+  @@map("usage_records")
+}
+
+// ─── Cross-Cutting ────────────────────────────────────────────────────────────
+
+/// Idempotency replay table for critical POST endpoints. TTL: 24h.
+model IdempotencyKey {
+  id             String            @id @default(uuid())
+  key            String            @unique
+  route          String
+  status         IdempotencyStatus @default(PROCESSING)
+  responseStatus Int?              @map("response_status")
+  responseBody   Json?             @map("response_body")
+  expiresAt      DateTime          @map("expires_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+/// Immutable audit trail. No soft delete, no version.
+model AuditLog {
+  id             String      @id @default(uuid())
+  /// organizationId (plain FK — no Prisma relation; FK enforced in SQL migration)
+  organizationId String?     @map("organization_id")
+  actorId        String?     @map("actor_id")
+  actorEmail     String?     @map("actor_email")
+  entityType     String      @map("entity_type")
+  entityId       String      @map("entity_id")
+  action         AuditAction
+  diff           Json?
+  requestId      String?     @map("request_id")
+  ipAddress      String?     @map("ip_address")
+  userAgent      String?     @map("user_agent")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([entityType, entityId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+// ─── Infrastructure ───────────────────────────────────────────────────────────
+
+model HealthCheck {
+  id        String   @id @default(uuid())
+  checkedAt DateTime @default(now()) @map("checked_at")
+
+  @@map("health_checks")
+}

@@ -1,0 +1,10 @@
+# Production deploy — Vercel deploy on push to main (configurar en Vercel Dashboard)
+name: Deploy Production
+on:
+  push:
+    branches: [main]
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Production deploy handled by Vercel"
