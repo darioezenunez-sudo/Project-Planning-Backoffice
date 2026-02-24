@@ -12,6 +12,26 @@ import type {
 import type { SummaryRepository, SummaryRow } from './summary.repository';
 import { transitionSummary } from './summary.state-machine';
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function computeTransitionTimestamps(
+  event: TransitionSummaryInput['event'],
+  currentState: SummaryRow['state'],
+): { reviewedAt?: Date; editedAt?: Date; validatedAt?: Date } {
+  const now = new Date();
+  const reviewedAt =
+    event === 'REQUEST_EDIT' || (event === 'VALIDATE' && currentState === 'REVIEW')
+      ? now
+      : undefined;
+  const editedAt =
+    (event === 'VALIDATE' && currentState === 'EDITED') ||
+    (event === 'SUBMIT' && currentState === 'EDITED')
+      ? now
+      : undefined;
+  const validatedAt = event === 'VALIDATE' ? now : undefined;
+  return { reviewedAt, editedAt, validatedAt };
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export type SummaryListResult = {
@@ -54,14 +74,13 @@ export function createSummaryService(
   async function create(
     sessionId: string,
     organizationId: string,
-    input: CreateSummaryInput,
+    input: CreateSummaryInput & { embedding?: number[] },
   ): Promise<Result<SummaryRow>> {
     const session = await sessionRepo.findById(sessionId, organizationId);
     if (!session) {
       return err(new AppError(ErrorCode.NOT_FOUND, 404, `Session ${sessionId} not found`));
     }
 
-    // Prevent duplicate summaries per session.
     const existing = await summaryRepo.findBySession(sessionId, organizationId);
     if (existing) {
       return err(
@@ -72,7 +91,17 @@ export function createSummaryService(
       );
     }
 
-    const summary = await summaryRepo.create(sessionId, session.echelonId, organizationId, input);
+    const summary =
+      input.embedding !== undefined && input.embedding.length === 768
+        ? await summaryRepo.createWithEmbedding(
+            sessionId,
+            session.echelonId,
+            organizationId,
+            input.rawContent ?? null,
+            input.embedding,
+          )
+        : await summaryRepo.create(sessionId, session.echelonId, organizationId, input);
+
     return ok(summary);
   }
 
@@ -113,20 +142,7 @@ export function createSummaryService(
     const fsm = transitionSummary(existing.state, input.event);
     if (!fsm.ok) return err(fsm.error);
 
-    const now = new Date();
-    const timestamps = {
-      reviewedAt:
-        input.event === 'REQUEST_EDIT' ||
-        (input.event === 'VALIDATE' && existing.state === 'REVIEW')
-          ? now
-          : undefined,
-      editedAt:
-        (input.event === 'VALIDATE' && existing.state === 'EDITED') ||
-        (input.event === 'SUBMIT' && existing.state === 'EDITED')
-          ? now
-          : undefined,
-      validatedAt: input.event === 'VALIDATE' ? now : undefined,
-    };
+    const timestamps = computeTransitionTimestamps(input.event, existing.state);
 
     const updated = await summaryRepo.updateState(
       id,

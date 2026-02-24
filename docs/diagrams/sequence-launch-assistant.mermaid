@@ -1,0 +1,28 @@
+%% Sequence: Launch Assistant (Fase 3)
+%% Usuario lanza Assistant con contexto del eslabón
+sequenceDiagram
+    participant User as Usuario (Backoffice)
+    participant API as Backoffice API
+    participant Context as Context Bundle Service
+    participant DB as PostgreSQL
+    participant Assistant as Assistant (Electron)
+
+    User->>API: POST /api/v1/echelons/:id/launch<br/>Auth + Tenant
+    API->>Context: getContextBundle(echelonId, orgId)
+    Context->>DB: echelon, requiredFields, summaries, decisionLinks, sessions
+    Context-->>API: ContextBundleResponse
+    API->>API: deepLinkUrl = APP_URL/echelon/:id?contextVersion=v
+    API-->>User: 200 { echelonId, deepLinkUrl, context }
+
+    Note over User,Assistant: Usuario abre deep link en Assistant
+    User->>Assistant: Abre deepLinkUrl (app://... o https://...)
+    Assistant->>Assistant: Bootstrap con context (requiredFields, summaries, decisionAnchors)
+    Assistant->>API: GET /api/v1/context/:echelonId (refresh context si necesario)
+    API->>API: getContextBundleFromCache(echelonId)
+    alt cache hit
+        API-->>Assistant: 200 cached bundle
+    else cache miss
+        API->>Context: getContextBundle(...)
+        API->>API: setContextBundleCache(echelonId, bundle)
+        API-->>Assistant: 200 bundle
+    end

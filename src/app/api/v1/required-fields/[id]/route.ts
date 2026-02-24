@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { invalidateContextCache } from '@/lib/cache/context-cache';
 import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
 import { withAudit } from '@/lib/middleware/with-audit';
@@ -38,6 +39,8 @@ export const PATCH = compose(
 
   const result = await service.update(id, organizationId, input);
   if (!result.ok) throw result.error;
+
+  await invalidateContextCache(result.value.echelonId);
 
   return apiSuccess(result.value);
 });
