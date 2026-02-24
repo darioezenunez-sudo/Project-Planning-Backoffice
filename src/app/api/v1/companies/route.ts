@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 
 import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
+import { withAudit } from '@/lib/middleware/with-audit';
 import { withAuth } from '@/lib/middleware/with-auth';
 import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withTenant } from '@/lib/middleware/with-tenant';
@@ -44,6 +45,7 @@ export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
+  withAudit('Company'),
 )(async (req: NextRequest, _context: RouteContext) => {
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
