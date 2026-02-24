@@ -35,6 +35,14 @@ export function createSessionRepository() {
     });
   }
 
+  async function findManyByIds(ids: string[], organizationId: string): Promise<SessionRow[]> {
+    if (ids.length === 0) return [];
+    return prisma.session.findMany({
+      where: { id: { in: ids }, organizationId },
+      select: sessionSelect,
+    });
+  }
+
   async function findManyByEchelon(
     echelonId: string,
     organizationId: string,
@@ -113,7 +121,15 @@ export function createSessionRepository() {
     return result.count > 0;
   }
 
-  return { findById, findManyByEchelon, getNextSessionNumber, create, update, softDelete };
+  return {
+    findById,
+    findManyByIds,
+    findManyByEchelon,
+    getNextSessionNumber,
+    create,
+    update,
+    softDelete,
+  };
 }
 
 export type SessionRepository = ReturnType<typeof createSessionRepository>;
