@@ -92,6 +92,36 @@ export function createSummaryRepository() {
     });
   }
 
+  /**
+   * Create summary with optional pgvector embedding (Fase 3). Used when Assistant sends embedding.
+   * Prisma does not support vector type natively; uses raw SQL.
+   */
+  async function createWithEmbedding(
+    sessionId: string,
+    echelonId: string,
+    organizationId: string,
+    rawContent: string | null,
+    embedding: number[],
+  ): Promise<SummaryRow> {
+    const id = crypto.randomUUID();
+    const embeddingStr = `[${embedding.join(',')}]`;
+    await prisma.$executeRawUnsafe(
+      `
+      INSERT INTO executive_summaries (id, organization_id, session_id, echelon_id, state, raw_content, embedding, created_at, updated_at, deleted_at, version)
+      VALUES ($1, $2, $3, $4, 'DRAFT', $5, $6::vector, NOW(), NOW(), NULL, 1)
+      `,
+      id,
+      organizationId,
+      sessionId,
+      echelonId,
+      rawContent,
+      embeddingStr,
+    );
+    const row = await findById(id, organizationId);
+    if (!row) throw new Error('createWithEmbedding: findById after insert returned null');
+    return row;
+  }
+
   async function update(
     id: string,
     organizationId: string,
@@ -134,6 +164,7 @@ export function createSummaryRepository() {
     findBySession,
     findManyByEchelon,
     create,
+    createWithEmbedding,
     update,
     updateState,
     softDelete,
