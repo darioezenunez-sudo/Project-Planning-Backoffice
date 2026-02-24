@@ -19,6 +19,8 @@ function makeEchelon(overrides: Partial<EchelonRow> = {}): EchelonRow {
     name: 'Sprint 1',
     state: 'OPEN',
     configBlueprint: null,
+    consolidatedReport: null,
+    consolidatedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
