@@ -262,6 +262,8 @@ model ExecutiveSummary {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   deletedAt      DateTime?    @map("deleted_at")
   version        Int          @default(1)
+  /// pgvector embedding for ranked retrieval (768 dims). Set via raw SQL; Prisma does not support vector natively.
+  embedding     Unsupported("vector(768)")? @map("embedding")
 
   session       Session        @relation(fields: [sessionId], references: [id])
   attachments   Attachment[]
