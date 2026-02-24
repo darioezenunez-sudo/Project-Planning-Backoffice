@@ -1,0 +1,33 @@
+%% Sequence: Device Enrollment (Fase 3)
+%% Backoffice ↔ Assistant — enroll machine, validate, revoke
+sequenceDiagram
+    participant User as Usuario (Backoffice)
+    participant Assistant as Assistant (Electron)
+    participant API as Backoffice API
+    participant DB as PostgreSQL
+
+    Note over User,DB: Enrollment (usuario enrola dispositivo)
+    User->>API: POST /api/v1/auth/devices<br/>{ machineId, userId, osInfo }<br/>Header: Idempotency-Key
+    API->>DB: findById(machineId, org)
+    alt device no existe
+        API->>DB: create(device)
+    else device ya existe y no revocado
+        API->>API: return existing (idempotent)
+    end
+    API-->>User: 201 { data: device }
+
+    Note over Assistant,DB: Validación (Assistant arranca, necesita token)
+    Assistant->>API: GET /api/v1/auth/devices/:machineId
+    API->>DB: findByMachineId(machineId)
+    alt device no existe o revocado
+        API-->>Assistant: 404 / 403
+    else ok
+        API->>DB: updateLastSeenAt(machineId)
+        API-->>Assistant: 200 { accessToken, expiresAt, organizationId, userId }
+    end
+
+    Note over User,DB: Revocación (admin)
+    User->>API: DELETE /api/v1/auth/devices/:machineId<br/>Auth + Tenant + Role ADMIN
+    API->>DB: revoke(machineId, orgId)
+    API-->>User: 200 { data: device }
+    Note over Assistant: Próxima validación fallará con 403

@@ -1,0 +1,39 @@
+%% Sequence: Session Lifecycle E2E (Fase 3)
+%% Assistant envía resumen, backoffice persiste y actualiza estado
+sequenceDiagram
+    participant Assistant as Assistant
+    participant API as Backoffice API
+    participant Summary as Summary Service
+    participant Echelon as Echelon Service
+    participant DB as PostgreSQL
+    participant Cache as KV Cache
+
+    Note over Assistant,Cache: Assistant valida dispositivo
+    Assistant->>API: GET /auth/devices/:machineId
+    API-->>Assistant: accessToken, expiresAt
+
+    Note over Assistant,Cache: Obtener contexto
+    Assistant->>API: GET /context/:echelonId<br/>Header: Authorization Bearer accessToken (o JWT usuario)
+    API->>Cache: getContextBundleFromCache(echelonId)
+    alt miss
+        API->>Summary: getContextBundle (vía context-bundle.service)
+        API->>Cache: setContextBundleCache
+    end
+    API-->>Assistant: context bundle
+
+    Note over Assistant,Cache: Enviar resumen (idempotent)
+    Assistant->>API: POST /sessions/:sessionId/summary<br/>Idempotency-Key, { rawContent?, embedding? }
+    API->>DB: create summary (o createWithEmbedding si embedding)
+    API->>Cache: invalidateContextCache(echelonId)
+    alt echelon en OPEN (primera sesión con summary)
+        API->>Echelon: transition(echelonId, START_SESSION)
+        Echelon->>DB: updateState(IN_PROGRESS)
+    end
+    API-->>Assistant: 201 { data: summary }
+
+    Note over Assistant,Cache: Registrar uso (idempotent)
+    Assistant->>API: POST /api/v1/usage<br/>Idempotency-Key, { monthYear, tokens, costCents, productId?, echelonId? }
+    API->>DB: recordUsage (upsert)
+    API-->>Assistant: 201 { data: usageRecord }
+
+    Note over Assistant,Cache: Flujo posterior: consolidación y cierre (Fase 4)
