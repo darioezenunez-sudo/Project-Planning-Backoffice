@@ -8,53 +8,51 @@ import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
-import { createSessionRepository } from '@/modules/session/session.repository';
-import { createSummaryRepository } from '@/modules/summary/summary.repository';
-import { createSummaryService } from '@/modules/summary/summary.service';
-import { createSummarySchema } from '@/schemas/summary.schema';
+import { createDecisionLinkRepository } from '@/modules/decision-link/decision-link.repository';
+import { createDecisionLinkService } from '@/modules/decision-link/decision-link.service';
+import { createDecisionLinkSchema } from '@/schemas/echelon.schema';
 
-const summaryRepo = createSummaryRepository();
-const sessionRepo = createSessionRepository();
-const service = createSummaryService(summaryRepo, sessionRepo);
+const repo = createDecisionLinkRepository();
+const service = createDecisionLinkService(repo);
 
-async function resolveSessionId(context: RouteContext): Promise<string> {
+async function resolveRequiredFieldId(context: RouteContext): Promise<string> {
   const params = await context.params;
   const id = params['id'];
   if (!id || Array.isArray(id)) throw new Error('Invalid route param: id');
   return id;
 }
 
-// GET /api/v1/sessions/:id/summary
+// GET /api/v1/required-fields/:id/decision-links
 export const GET = compose(
   withErrorHandling,
   withAuth,
   withTenant,
 )(async (_req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+  const requiredFieldId = await resolveRequiredFieldId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
-  const result = await service.getBySession(sessionId, organizationId);
+  const result = await service.listByRequiredField(requiredFieldId, organizationId);
   if (!result.ok) throw result.error;
 
   return apiSuccess(result.value);
 });
 
-// POST /api/v1/sessions/:id/summary
+// POST /api/v1/required-fields/:id/decision-links
 export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withAudit('ExecutiveSummary'),
+  withAudit('DecisionLink'),
 )(async (req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+  const requiredFieldId = await resolveRequiredFieldId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
   const body = (await req.json()) as unknown;
-  const input = createSummarySchema.parse(body);
+  const input = createDecisionLinkSchema.parse({ ...(body as object), requiredFieldId });
 
-  const result = await service.create(sessionId, organizationId, input);
+  const result = await service.create(organizationId, input);
   if (!result.ok) throw result.error;
 
   return apiSuccess(result.value, {}, 201);

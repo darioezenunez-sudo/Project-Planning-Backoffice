@@ -8,14 +8,12 @@ import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
-import { createEchelonRepository } from '@/modules/echelon/echelon.repository';
-import { createSessionRepository } from '@/modules/session/session.repository';
-import { createSessionService } from '@/modules/session/session.service';
-import { updateSessionSchema } from '@/schemas/session.schema';
+import { createDecisionLinkRepository } from '@/modules/decision-link/decision-link.repository';
+import { createDecisionLinkService } from '@/modules/decision-link/decision-link.service';
+import { updateDecisionLinkSchema } from '@/schemas/echelon.schema';
 
-const echelonRepo = createEchelonRepository();
-const sessionRepo = createSessionRepository();
-const service = createSessionService(sessionRepo, echelonRepo);
+const repo = createDecisionLinkRepository();
+const service = createDecisionLinkService(repo);
 
 async function resolveId(context: RouteContext): Promise<string> {
   const params = await context.params;
@@ -24,35 +22,19 @@ async function resolveId(context: RouteContext): Promise<string> {
   return id;
 }
 
-// GET /api/v1/sessions/:id
-export const GET = compose(
-  withErrorHandling,
-  withAuth,
-  withTenant,
-)(async (_req: NextRequest, context: RouteContext) => {
-  const id = await resolveId(context);
-  const ctx = getRequestContext();
-  const organizationId = ctx?.organizationId ?? '';
-
-  const result = await service.getById(id, organizationId);
-  if (!result.ok) throw result.error;
-
-  return apiSuccess(result.value);
-});
-
-// PATCH /api/v1/sessions/:id
+// PATCH /api/v1/decision-links/:id
 export const PATCH = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withAudit('Session'),
+  withAudit('DecisionLink'),
 )(async (req: NextRequest, context: RouteContext) => {
   const id = await resolveId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
   const body = (await req.json()) as unknown;
-  const input = updateSessionSchema.parse(body);
+  const input = updateDecisionLinkSchema.parse(body);
 
   const result = await service.update(id, organizationId, input);
   if (!result.ok) throw result.error;
@@ -60,12 +42,12 @@ export const PATCH = compose(
   return apiSuccess(result.value);
 });
 
-// DELETE /api/v1/sessions/:id
+// DELETE /api/v1/decision-links/:id
 export const DELETE = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withAudit('Session'),
+  withAudit('DecisionLink'),
 )(async (req: NextRequest, context: RouteContext) => {
   const id = await resolveId(context);
   const ctx = getRequestContext();

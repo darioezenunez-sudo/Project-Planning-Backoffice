@@ -8,53 +8,51 @@ import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
-import { createSessionRepository } from '@/modules/session/session.repository';
-import { createSummaryRepository } from '@/modules/summary/summary.repository';
-import { createSummaryService } from '@/modules/summary/summary.service';
-import { createSummarySchema } from '@/schemas/summary.schema';
+import { createRequiredFieldRepository } from '@/modules/echelon/required-field.repository';
+import { createRequiredFieldService } from '@/modules/echelon/required-field.service';
+import { createRequiredFieldSchema } from '@/schemas/echelon.schema';
 
-const summaryRepo = createSummaryRepository();
-const sessionRepo = createSessionRepository();
-const service = createSummaryService(summaryRepo, sessionRepo);
+const repo = createRequiredFieldRepository();
+const service = createRequiredFieldService(repo);
 
-async function resolveSessionId(context: RouteContext): Promise<string> {
+async function resolveEchelonId(context: RouteContext): Promise<string> {
   const params = await context.params;
   const id = params['id'];
   if (!id || Array.isArray(id)) throw new Error('Invalid route param: id');
   return id;
 }
 
-// GET /api/v1/sessions/:id/summary
+// GET /api/v1/echelons/:id/required-fields
 export const GET = compose(
   withErrorHandling,
   withAuth,
   withTenant,
 )(async (_req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+  const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
-  const result = await service.getBySession(sessionId, organizationId);
+  const result = await service.listByEchelon(echelonId, organizationId);
   if (!result.ok) throw result.error;
 
   return apiSuccess(result.value);
 });
 
-// POST /api/v1/sessions/:id/summary
+// POST /api/v1/echelons/:id/required-fields
 export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withAudit('ExecutiveSummary'),
+  withAudit('RequiredField'),
 )(async (req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+  const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
   const body = (await req.json()) as unknown;
-  const input = createSummarySchema.parse(body);
+  const input = createRequiredFieldSchema.parse(body);
 
-  const result = await service.create(sessionId, organizationId, input);
+  const result = await service.create(echelonId, organizationId, input);
   if (!result.ok) throw result.error;
 
   return apiSuccess(result.value, {}, 201);

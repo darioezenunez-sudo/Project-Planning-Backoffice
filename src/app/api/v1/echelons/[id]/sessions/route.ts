@@ -8,53 +8,63 @@ import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
+import { createEchelonRepository } from '@/modules/echelon/echelon.repository';
 import { createSessionRepository } from '@/modules/session/session.repository';
-import { createSummaryRepository } from '@/modules/summary/summary.repository';
-import { createSummaryService } from '@/modules/summary/summary.service';
-import { createSummarySchema } from '@/schemas/summary.schema';
+import { createSessionService } from '@/modules/session/session.service';
+import { createSessionSchema, listSessionsQuerySchema } from '@/schemas/session.schema';
 
-const summaryRepo = createSummaryRepository();
+const echelonRepo = createEchelonRepository();
 const sessionRepo = createSessionRepository();
-const service = createSummaryService(summaryRepo, sessionRepo);
+const service = createSessionService(sessionRepo, echelonRepo);
 
-async function resolveSessionId(context: RouteContext): Promise<string> {
+async function resolveEchelonId(context: RouteContext): Promise<string> {
   const params = await context.params;
   const id = params['id'];
   if (!id || Array.isArray(id)) throw new Error('Invalid route param: id');
   return id;
 }
 
-// GET /api/v1/sessions/:id/summary
+// GET /api/v1/echelons/:id/sessions
 export const GET = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-)(async (_req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+)(async (req: NextRequest, context: RouteContext) => {
+  const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
-  const result = await service.getBySession(sessionId, organizationId);
+  const query = listSessionsQuerySchema.parse(
+    Object.fromEntries(req.nextUrl.searchParams.entries()),
+  );
+
+  const result = await service.listByEchelon(echelonId, organizationId, query);
   if (!result.ok) throw result.error;
 
-  return apiSuccess(result.value);
+  return apiSuccess(result.value.items, {
+    pagination: {
+      cursor: result.value.nextCursor ?? undefined,
+      hasMore: result.value.hasMore,
+      limit: query.limit,
+    },
+  });
 });
 
-// POST /api/v1/sessions/:id/summary
+// POST /api/v1/echelons/:id/sessions
 export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withAudit('ExecutiveSummary'),
+  withAudit('Session'),
 )(async (req: NextRequest, context: RouteContext) => {
-  const sessionId = await resolveSessionId(context);
+  const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();
   const organizationId = ctx?.organizationId ?? '';
 
   const body = (await req.json()) as unknown;
-  const input = createSummarySchema.parse(body);
+  const input = createSessionSchema.parse(body);
 
-  const result = await service.create(sessionId, organizationId, input);
+  const result = await service.create(echelonId, organizationId, input);
   if (!result.ok) throw result.error;
 
   return apiSuccess(result.value, {}, 201);
