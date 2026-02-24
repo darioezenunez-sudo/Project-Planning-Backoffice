@@ -55,6 +55,30 @@ export function createDecisionLinkRepository() {
     });
   }
 
+  /** All decision links for an echelon (via required fields or summaries). */
+  async function findManyForEchelon(
+    requiredFieldIds: string[],
+    executiveSummaryIds: string[],
+    organizationId: string,
+  ): Promise<DecisionLinkRow[]> {
+    if (requiredFieldIds.length === 0 && executiveSummaryIds.length === 0) {
+      return [];
+    }
+    return prisma.decisionLink.findMany({
+      where: {
+        organizationId,
+        OR: [
+          ...(requiredFieldIds.length > 0 ? [{ requiredFieldId: { in: requiredFieldIds } }] : []),
+          ...(executiveSummaryIds.length > 0
+            ? [{ executiveSummaryId: { in: executiveSummaryIds } }]
+            : []),
+        ],
+      },
+      select: decisionLinkSelect,
+      orderBy: { id: 'asc' },
+    });
+  }
+
   async function create(
     organizationId: string,
     input: CreateDecisionLinkInput,
@@ -98,6 +122,7 @@ export function createDecisionLinkRepository() {
     findById,
     findManyByRequiredField,
     findManyByExecutiveSummary,
+    findManyForEchelon,
     create,
     update,
     softDelete,

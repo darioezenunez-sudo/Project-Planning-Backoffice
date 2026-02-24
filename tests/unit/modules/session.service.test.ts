@@ -46,6 +46,7 @@ function makeSession(overrides: Partial<SessionRow> = {}): SessionRow {
 function makeSessionRepo(overrides: Partial<SessionRepository> = {}): SessionRepository {
   return {
     findById: vi.fn().mockResolvedValue(null),
+    findManyByIds: vi.fn().mockResolvedValue([]),
     findManyByEchelon: vi.fn().mockResolvedValue({ items: [], nextCursor: null, hasMore: false }),
     getNextSessionNumber: vi.fn().mockResolvedValue(1),
     create: vi.fn().mockResolvedValue(makeSession()),

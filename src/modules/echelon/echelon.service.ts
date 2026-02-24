@@ -8,6 +8,7 @@ import type {
 } from '@/schemas/echelon.schema';
 
 import type { EchelonRepository, EchelonRow } from './echelon.repository';
+import type { EchelonEvent } from './echelon.state-machine';
 import { transitionEchelon } from './echelon.state-machine';
 import type { RequiredFieldRepository } from './required-field.repository';
 
@@ -170,7 +171,35 @@ export function createEchelonService(
     return ok(updated);
   }
 
-  return { list, getById, create, update, remove, consolidate, close };
+  async function transition(
+    id: string,
+    organizationId: string,
+    event: EchelonEvent,
+    version: number,
+  ): Promise<Result<EchelonRow>> {
+    const existing = await repo.findById(id, organizationId);
+    if (!existing) {
+      return err(new AppError(ErrorCode.NOT_FOUND, 404, `Echelon ${id} not found`));
+    }
+
+    const fsm = transitionEchelon(existing.state, event);
+    if (!fsm.ok) return err(fsm.error);
+
+    const updated = await repo.updateState(id, organizationId, fsm.value, version);
+    if (!updated) {
+      return err(
+        new AppError(
+          ErrorCode.CONFLICT,
+          409,
+          'Version conflict — the echelon was modified by another request',
+          { currentVersion: existing.version, requestedVersion: version },
+        ),
+      );
+    }
+    return ok(updated);
+  }
+
+  return { list, getById, create, update, remove, consolidate, close, transition };
 }
 
 export type EchelonService = ReturnType<typeof createEchelonService>;
