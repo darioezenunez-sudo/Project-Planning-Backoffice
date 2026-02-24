@@ -75,6 +75,18 @@ export function createSummaryRepository() {
     return { items: page, nextCursor, hasMore };
   }
 
+  /** Fase 4: all VALIDATED summaries for an echelon (consolidation input). */
+  async function findValidatedByEchelon(
+    echelonId: string,
+    organizationId: string,
+  ): Promise<SummaryRow[]> {
+    return prisma.executiveSummary.findMany({
+      where: { echelonId, organizationId, state: 'VALIDATED' },
+      select: summarySelect,
+      orderBy: { id: 'asc' },
+    });
+  }
+
   async function create(
     sessionId: string,
     echelonId: string,
@@ -163,6 +175,7 @@ export function createSummaryRepository() {
     findById,
     findBySession,
     findManyByEchelon,
+    findValidatedByEchelon,
     create,
     createWithEmbedding,
     update,

@@ -17,6 +17,8 @@ const echelonSelect = {
   name: true,
   state: true,
   configBlueprint: true,
+  consolidatedReport: true,
+  consolidatedAt: true,
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
@@ -110,7 +112,27 @@ export function createEchelonRepository() {
     return result.count > 0;
   }
 
-  return { findById, findMany, create, update, updateState, softDelete };
+  /** Fase 4: set consolidated report and transition to CLOSURE_REVIEW. */
+  async function setConsolidatedReport(
+    id: string,
+    organizationId: string,
+    report: unknown,
+    version: number,
+  ): Promise<EchelonRow | null> {
+    const result = await prisma.echelon.updateMany({
+      where: { id, organizationId, version },
+      data: {
+        state: 'CLOSURE_REVIEW',
+        consolidatedReport: report as Prisma.InputJsonValue,
+        consolidatedAt: new Date(),
+        version: { increment: 1 },
+      },
+    });
+    if (result.count === 0) return null;
+    return findById(id, organizationId);
+  }
+
+  return { findById, findMany, create, update, updateState, softDelete, setConsolidatedReport };
 }
 
 export type EchelonRepository = ReturnType<typeof createEchelonRepository>;
