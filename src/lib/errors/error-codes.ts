@@ -9,6 +9,7 @@ export const ErrorCode = {
   TENANT_MISMATCH: 'TENANT_MISMATCH',
   ECHELON_INVALID_TRANSITION: 'ECHELON_INVALID_TRANSITION',
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
