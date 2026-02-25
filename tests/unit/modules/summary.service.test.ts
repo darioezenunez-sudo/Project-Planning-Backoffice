@@ -54,6 +54,7 @@ function makeSummaryRepo(overrides: Partial<SummaryRepository> = {}): SummaryRep
     findById: vi.fn().mockResolvedValue(null),
     findBySession: vi.fn().mockResolvedValue(null),
     findManyByEchelon: vi.fn().mockResolvedValue({ items: [], nextCursor: null, hasMore: false }),
+    findValidatedByEchelon: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue(makeSummary()),
     createWithEmbedding: vi.fn().mockResolvedValue(makeSummary()),
     update: vi.fn().mockResolvedValue(makeSummary()),

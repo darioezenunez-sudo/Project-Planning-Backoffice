@@ -8,6 +8,7 @@ export const ErrorCode = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   TENANT_MISMATCH: 'TENANT_MISMATCH',
   ECHELON_INVALID_TRANSITION: 'ECHELON_INVALID_TRANSITION',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

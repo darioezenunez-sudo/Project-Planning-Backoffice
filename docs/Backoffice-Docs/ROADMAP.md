@@ -1,6 +1,6 @@
 # ROADMAP — Estado, Decisiones Pendientes y Próximas Fases
 
-**Versión:** 1.3 · **Fecha:** 2026-02-24 · **Estado:** Activo — documento vivo
+**Versión:** 1.4 · **Fecha:** 2026-02-24 · **Estado:** Activo — documento vivo
 **Complementa:** `DEVELOPMENT_PLAN_MVP.md` (fases, tareas, arquitectura) y `ENGINEERING_STANDARDS.md` (reglas de código)
 **Propósito:** Registrar el estado real del proyecto, decisiones de proceso tomadas y pendientes, y la estrategia de branches/commits que aplica desde Fase 3 en adelante.
 
@@ -203,7 +203,7 @@ Para el plan completo de cada fase ver `DEVELOPMENT_PLAN_MVP.md`.
 | Fase       | Descripción                                                         | Estado         | Branch        |
 | ---------- | ------------------------------------------------------------------- | -------------- | ------------- |
 | **Fase 3** | Assistant Integration Contracts (devices, context bundle, pgvector) | 🔄 Activa      | `feat/fase-3` |
-| **Fase 4** | Async Jobs + Integration Engine + AI Consolidation                  | ❌ No iniciada | `feat/fase-4` |
+| **Fase 4** | Async Jobs + Integration Engine + AI Consolidation                  | 🔄 En progreso | `feat/fase-4` |
 | **Fase 5** | Web Admin Frontend (13 pantallas) + i18n setup                      | ❌ No iniciada | `feat/fase-5` |
 | **Fase 6** | Security Hardening + Production Readiness                           | ❌ No iniciada | `feat/fase-6` |
 | **Fase 7** | Testing Quality Gate + E2E + Load Test                              | ❌ No iniciada | `feat/fase-7` |
@@ -288,14 +288,8 @@ feat(infra): add device and budget repos, findManyForEchelon and findManyByIds f
 
 ```
 Archivos a incluir:
-  src/modules/auth/device.service.ts
-  src/modules/budget/budget.service.ts
-  src/modules/context-bundle/context-bundle.service.ts
-  src/modules/echelon/echelon.service.ts
-  src/modules/summary/summary.repository.ts
-  src/modules/summary/summary.service.ts
-  src/lib/cache/context-cache.ts
-  src/lib/pgvector.ts
+  src/modules/auth/device.service.ts src/modules/budget/budget.service.ts src/modules/context-bundle/context-bundle.service.ts src/modules/echelon/echelon.service.ts src/modules/summary/summary.repository.ts src/modules/summary/summary.service.ts
+  src/lib/cache/context-cache.ts src/lib/pgvector.ts
 
 Mensaje:
 feat(domain): device, budget, context-bundle services; summary embedding; echelon transition; context cache
@@ -353,11 +347,36 @@ docs(roadmap): Fase 3 status, deferred items, commit guide; add sequence diagram
 
 ---
 
+## 8.1 Fase 4 — Implementación y diferidos
+
+**Implementado en `feat/fase-4`:**
+
+- **4.1 Job queue:** Tabla `jobs` (Prisma), enums `JobType`/`JobStatus`, migración. Repo + service con retry (exponential backoff) y dead letter (3 intentos).
+- **4.2 Vercel AI SDK:** `ai` + `@ai-sdk/openai`, `src/lib/ai/provider.ts` con `generateText` + `Output.object` (Zod), token tracking. `CONSOLIDATION_MAX_INPUT_TOKENS` para límite.
+- **4.3 Consolidation Engine:** En backoffice (no Edge Function): servicio de consolidación que recoge summaries VALIDATED, construye prompt, llama LLM, persiste reporte en `echelon.consolidatedReport` y transición a CLOSURE_REVIEW. Límite de tokens → 413.
+- **4.4 Consolidation prompt:** `src/lib/ai/consolidation.prompt.ts` (6 capas: role, context, summaries, output rules, format). Schema Zod en `consolidation.schema.ts`.
+- **4.5 / 4.6 PDF y Email:** Jobs encolados (tipo PDF, EMAIL). Adapters en backoffice siguen como stubs; la ejecución real queda para Edge Functions (Supabase) o worker que consuma la cola.
+- **4.7 Integration Strategy Engine:** Strategy pattern por `config_blueprint.type`; default = PDF + email (enqueue 2 jobs); PM y Architecture = stubs que delegan al default.
+- **4.8 Database Webhooks:** No implementado; configurable en Supabase (echelon.state / executive_summary created) cuando se disponga del entorno.
+- **4.9 Budget alerts:** Tras `POST /usage`, si `BUDGET_LIMIT_TOKENS_PER_ORG_MONTH` está definido, se comprueba uso vs límite y se encola job `BUDGET_ALERT` si ≥ 80%.
+- **4.10 Retry + Dead Letter:** En job service: 3 intentos, backoff exponencial, estado DEAD_LETTER al agotar.
+- **4.11 Tests:** Unit tests para `job.service` (enqueue, markFailed, retry, listReadyToRun) e `integration.engine` (selección de estrategia por tipo).
+
+**Diferido (Fase 4+):**
+
+- Consolidation como Edge Function (Supabase) para evitar timeout 10s en Vercel; actualmente se ejecuta en la misma request de `POST /consolidate`.
+- Invocación de Edge Functions desde Postgres (pg_net) al insertar en `jobs`; actualmente los jobs solo se encolan y un worker externo o cron podría consumirlos.
+- Database webhooks (triggers) para notificación al cambiar `echelon.state` o crear `executive_summary`.
+- Implementación real de PDF (react-pdf + Storage) y Email (Resend + templates) en Edge Functions.
+
+---
+
 ## 9. Historial de Versiones
 
-| Versión | Fecha      | Cambios                                                                                                    |
-| ------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
-| 1.0     | 2026-02-23 | Documento inicial — resultado del debate de proceso                                                        |
-| 1.1     | 2026-02-24 | Actualización post-commits: Fase 0+1+2 commiteadas, branches creadas, skills activas                       |
-| 1.2     | 2026-02-24 | Decisiones de i18n: next-intl, cookie-based, es default, DB+cookie, API multilingual                       |
-| 1.3     | 2026-02-24 | Fase 3 implementada: estado, ítems diferidos documentados, guía de commits end-to-end; diagramas secuencia |
+| Versión | Fecha      | Cambios                                                                                                         |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-02-23 | Documento inicial — resultado del debate de proceso                                                             |
+| 1.1     | 2026-02-24 | Actualización post-commits: Fase 0+1+2 commiteadas, branches creadas, skills activas                            |
+| 1.2     | 2026-02-24 | Decisiones de i18n: next-intl, cookie-based, es default, DB+cookie, API multilingual                            |
+| 1.3     | 2026-02-24 | Fase 3 implementada: estado, ítems diferidos documentados, guía de commits end-to-end; diagramas secuencia      |
+| 1.4     | 2026-02-24 | Fase 4 implementada: jobs, AI consolidation, integration engine, budget alerts; §8.1 implementación y diferidos |

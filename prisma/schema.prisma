@@ -53,6 +53,22 @@ enum AuditAction {
   INVITE_ACCEPTED
 }
 
+/// Job queue (Fase 4): consolidation, PDF, email, budget_alert. pg_net invokes Edge Functions.
+enum JobType {
+  CONSOLIDATION
+  PDF
+  EMAIL
+  BUDGET_ALERT
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+}
+
 // ─── Identity & Multi-Tenancy ─────────────────────────────────────────────────
 
 /// Tenant root. Every org-scoped entity carries organizationId for RLS.
@@ -161,6 +177,9 @@ model Echelon {
   state           EchelonState @default(OPEN)
   /// JSON blueprint that defines the type and rules for this echelon.
   configBlueprint Json?        @map("config_blueprint")
+  /// AI consolidation output (Fase 4). Set when consolidation completes.
+  consolidatedReport Json?     @map("consolidated_report")
+  consolidatedAt     DateTime? @map("consolidated_at")
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   deletedAt       DateTime?    @map("deleted_at")
@@ -176,6 +195,7 @@ model Echelon {
   @@index([productId])
   @@map("echelons")
 }
+
 
 model RequiredField {
   id             String    @id @default(uuid())
@@ -399,4 +419,24 @@ model HealthCheck {
   checkedAt DateTime @default(now()) @map("checked_at")
 
   @@map("health_checks")
+}
+
+/// Async job queue (Fase 4). pg_net invokes Edge Functions; retry + dead letter.
+model Job {
+  id          String     @id @default(uuid())
+  type        JobType
+  status      JobStatus  @default(PENDING)
+  payload     Json       @map("payload")
+  attempts    Int        @default(0) @map("attempts")
+  maxAttempts Int        @default(3) @map("max_attempts")
+  scheduledAt DateTime   @default(now()) @map("scheduled_at")
+  runAt       DateTime? @map("run_at")
+  completedAt DateTime?  @map("completed_at")
+  errorMessage String?   @map("error_message")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([status, scheduledAt])
+  @@index([type, status])
+  @@map("jobs")
 }
