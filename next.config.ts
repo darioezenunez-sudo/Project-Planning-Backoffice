@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const securityHeaders = [
@@ -16,21 +17,36 @@ const securityHeaders = [
   {
     key: 'Content-Security-Policy',
     value:
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io; frame-ancestors 'none';",
   },
 ];
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
   async headers() {
-    const headers = await Promise.resolve([
+    return Promise.resolve([
       {
         source: '/:path*',
         headers: securityHeaders,
       },
     ]);
-    return headers;
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: 'darioezenunez',
+  project: 'project-planning-backoffice',
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  webpack: {
+    // Automatic instrumentation of Vercel Cron Monitors
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});

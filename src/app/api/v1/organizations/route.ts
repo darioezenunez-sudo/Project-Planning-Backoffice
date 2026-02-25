@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 import { compose } from '@/lib/middleware/compose';
+import { withAudit } from '@/lib/middleware/with-audit';
 import { withAuth } from '@/lib/middleware/with-auth';
 import { withErrorHandling } from '@/lib/middleware/with-error-handling';
 import { withRole } from '@/lib/middleware/with-role';
@@ -19,6 +20,7 @@ export const POST = compose(
   withAuth,
   withTenant,
   withRole('SUPER_ADMIN'),
+  withAudit('Organization'),
 )(async (req: NextRequest) => {
   const body = (await req.json()) as unknown;
   const input = createOrganizationSchema.parse(body);

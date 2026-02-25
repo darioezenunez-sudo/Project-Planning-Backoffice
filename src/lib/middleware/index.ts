@@ -6,3 +6,4 @@ export { withTenant } from './with-tenant';
 export { withRateLimit } from './with-rate-limit';
 export { withIdempotency } from './with-idempotency';
 export { withRole, hasMinimumRole, ROLE_HIERARCHY } from './with-role';
+export { withAudit } from './with-audit';
