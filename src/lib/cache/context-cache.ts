@@ -25,8 +25,19 @@ export async function setContextBundleCache(
 
 /**
  * Call when context becomes stale: RequiredField updated, or summary validated.
- * Also call from any route that transitions a summary to VALIDATED (when that route exists).
  */
 export async function invalidateContextCache(echelonId: string): Promise<void> {
   await kvDel(getContextCacheKey(echelonId));
+}
+
+/**
+ * Call after a summary state transition; invalidates cache only when new state is VALIDATED.
+ */
+export async function invalidateContextCacheIfValidated(summary: {
+  state: string;
+  echelonId: string;
+}): Promise<void> {
+  if (summary.state === 'VALIDATED') {
+    await invalidateContextCache(summary.echelonId);
+  }
 }

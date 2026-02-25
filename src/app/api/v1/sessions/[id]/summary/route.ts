@@ -1,7 +1,12 @@
 import type { NextRequest } from 'next/server';
 
 import { assistantPostSummarySchema } from '@/contracts/assistant-api';
-import { invalidateContextCache } from '@/lib/cache/context-cache';
+import {
+  invalidateContextCache,
+  invalidateContextCacheIfValidated,
+} from '@/lib/cache/context-cache';
+import { AppError } from '@/lib/errors/app-error';
+import { ErrorCode } from '@/lib/errors/error-codes';
 import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
 import { withAudit } from '@/lib/middleware/with-audit';
@@ -17,6 +22,7 @@ import { createRequiredFieldRepository } from '@/modules/echelon/required-field.
 import { createSessionRepository } from '@/modules/session/session.repository';
 import { createSummaryRepository } from '@/modules/summary/summary.repository';
 import { createSummaryService } from '@/modules/summary/summary.service';
+import { transitionSummarySchema } from '@/schemas/summary.schema';
 
 const summaryRepo = createSummaryRepository();
 const sessionRepo = createSessionRepository();
@@ -86,4 +92,33 @@ export const POST = compose(
   }
 
   return apiSuccess(result.value, {}, 201);
+});
+
+// PATCH /api/v1/sessions/:id/summary — Transition summary state (e.g. VALIDATE → VALIDATED). Invalidates context cache when VALIDATED.
+export const PATCH = compose(
+  withErrorHandling,
+  withAuth,
+  withTenant,
+  withAudit('ExecutiveSummary'),
+)(async (req: NextRequest, context: RouteContext) => {
+  const sessionId = await resolveSessionId(context);
+  const ctx = getRequestContext();
+  const organizationId = ctx?.organizationId ?? '';
+
+  const summaryResult = await summaryService.getBySession(sessionId, organizationId);
+  if (!summaryResult.ok) throw summaryResult.error;
+  const summary = summaryResult.value;
+  if (summary === null) {
+    throw new AppError(ErrorCode.NOT_FOUND, 404, 'Summary not found for session');
+  }
+
+  const body = (await req.json()) as unknown;
+  const input = transitionSummarySchema.parse(body);
+
+  const result = await summaryService.transition(summary.id, organizationId, input);
+  if (!result.ok) throw result.error;
+
+  await invalidateContextCacheIfValidated(result.value);
+
+  return apiSuccess(result.value);
 });
