@@ -9,15 +9,19 @@ import { withRole } from '@/lib/middleware/with-role';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
+import { createConsolidationService } from '@/modules/consolidation/consolidation.service';
 import { createEchelonRepository } from '@/modules/echelon/echelon.repository';
 import { createEchelonService } from '@/modules/echelon/echelon.service';
 import { createRequiredFieldRepository } from '@/modules/echelon/required-field.repository';
+import { createSummaryRepository } from '@/modules/summary/summary.repository';
 
 const repo = createEchelonRepository();
 const rfRepo = createRequiredFieldRepository();
+const summaryRepo = createSummaryRepository();
 const service = createEchelonService(repo, rfRepo);
+const consolidationService = createConsolidationService(repo, summaryRepo, rfRepo);
 
-// POST /api/v1/echelons/:id/consolidate
+// POST /api/v1/echelons/:id/consolidate — transition to CLOSING then run AI consolidation → CLOSURE_REVIEW
 export const POST = compose(
   withErrorHandling,
   withAuth,
@@ -38,8 +42,18 @@ export const POST = compose(
     throw new Error('Body field `version` (integer ≥ 1) is required');
   }
 
-  const result = await service.consolidate(id, organizationId, version);
-  if (!result.ok) throw result.error;
+  const transitionResult = await service.consolidate(id, organizationId, version);
+  if (!transitionResult.ok) throw transitionResult.error;
 
-  return apiSuccess(result.value);
+  const consolidationResult = await consolidationService.runConsolidation(
+    id,
+    organizationId,
+    transitionResult.value.version,
+  );
+  if (!consolidationResult.ok) throw consolidationResult.error;
+
+  return apiSuccess({
+    echelon: consolidationResult.value.echelon,
+    usage: consolidationResult.value.usage,
+  });
 });

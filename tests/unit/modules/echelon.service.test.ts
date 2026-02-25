@@ -19,6 +19,8 @@ function makeEchelon(overrides: Partial<EchelonRow> = {}): EchelonRow {
     name: 'Sprint 1',
     state: 'OPEN',
     configBlueprint: null,
+    consolidatedReport: null,
+    consolidatedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
@@ -35,6 +37,7 @@ function makeRepo(overrides: Partial<EchelonRepository> = {}): EchelonRepository
     update: vi.fn().mockResolvedValue(makeEchelon()),
     updateState: vi.fn().mockResolvedValue(makeEchelon({ state: 'IN_PROGRESS' })),
     softDelete: vi.fn().mockResolvedValue(true),
+    setConsolidatedReport: vi.fn().mockResolvedValue(makeEchelon()),
     ...overrides,
   };
 }

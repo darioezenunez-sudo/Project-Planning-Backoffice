@@ -12,12 +12,27 @@ import { apiSuccess } from '@/lib/utils/api-response';
 import { createEchelonRepository } from '@/modules/echelon/echelon.repository';
 import { createEchelonService } from '@/modules/echelon/echelon.service';
 import { createRequiredFieldRepository } from '@/modules/echelon/required-field.repository';
+import { createIntegrationEngine } from '@/modules/integration/integration.engine';
+import { createArchitectureStrategy } from '@/modules/integration/strategies/architecture.strategy';
+import { createDefaultStrategy } from '@/modules/integration/strategies/default.strategy';
+import { createPmStrategy } from '@/modules/integration/strategies/pm.strategy';
+import { createJobRepository } from '@/modules/job/job.repository';
+import { createJobService } from '@/modules/job/job.service';
 
 const repo = createEchelonRepository();
 const rfRepo = createRequiredFieldRepository();
 const service = createEchelonService(repo, rfRepo);
 
-// POST /api/v1/echelons/:id/close
+const jobRepo = createJobRepository();
+const jobService = createJobService(jobRepo);
+const defaultStrategy = createDefaultStrategy(jobService);
+const integrationEngine = createIntegrationEngine({
+  defaultStrategy,
+  pmStrategy: createPmStrategy(defaultStrategy),
+  architectureStrategy: createArchitectureStrategy(defaultStrategy),
+});
+
+// POST /api/v1/echelons/:id/close — transition to CLOSED then run integration (PDF + email jobs)
 export const POST = compose(
   withErrorHandling,
   withAuth,
@@ -40,6 +55,9 @@ export const POST = compose(
 
   const result = await service.close(id, organizationId, version);
   if (!result.ok) throw result.error;
+
+  const integrationResult = await integrationEngine.execute(result.value);
+  if (!integrationResult.ok) throw integrationResult.error;
 
   return apiSuccess(result.value);
 });
