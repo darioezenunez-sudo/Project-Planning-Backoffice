@@ -6,7 +6,7 @@ import { createPdfAdapter } from '@/modules/integration/pdf.adapter';
 
 vi.mock('@react-pdf/renderer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-pdf/renderer')>();
-  const mod = actual as Record<string, unknown>;
+  const mod = actual as unknown as Record<string, unknown>;
   return {
     ...mod,
     default: {
