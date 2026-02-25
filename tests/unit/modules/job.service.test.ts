@@ -50,7 +50,11 @@ describe('createJobService', () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.type).toBe('EMAIL');
-      expect(repo.create).toHaveBeenCalledWith('EMAIL', { to: 'a@b.com' }, undefined);
+      expect(repo.create).toHaveBeenCalledWith(
+        'EMAIL',
+        { to: 'a@b.com' },
+        expect.objectContaining({ maxAttempts: 3 }),
+      );
     });
   });
 
