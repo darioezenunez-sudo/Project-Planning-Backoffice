@@ -13,12 +13,13 @@
 
 ### 1.1 Código vs. Commits — Estado real
 
-| Fase   | Código      | Tests        | `pnpm validate`         | Commit en repo                    |
-| ------ | ----------- | ------------ | ----------------------- | --------------------------------- |
-| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green                | ✅ En `develop`                   |
-| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green                | ✅ En `develop`                   |
-| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green                | ✅ En `develop`                   |
-| Fase 3 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | 🔄 Por commitear en `feat/fase-3` |
+| Fase   | Código      | Tests        | `pnpm validate`         | Commit en repo  |
+| ------ | ----------- | ------------ | ----------------------- | --------------- |
+| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green                | ✅ En `develop` |
+| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green                | ✅ En `develop` |
+| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green                | ✅ En `develop` |
+| Fase 3 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
+| Fase 4 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
 
 ### 1.2 Branches — Estado real
 
@@ -168,31 +169,42 @@ El asistente **no detecta** el idioma — recibe instrucción explícita. Esto e
 
 ---
 
-## 3. Deuda Técnica — Pendiente antes de Fase 3
+## 3. Deuda Técnica
 
-Estos ítems de Fase 2 están incompletos o requieren configuración de infra externa:
+> Ver `docs/Backoffice-Docs/TECHNICAL_DEBT_PLAN.md` para inventario completo, checklists y estimaciones.
 
-| Item          | Descripción                                                               | Prioridad                              |
-| ------------- | ------------------------------------------------------------------------- | -------------------------------------- |
-| DB migrations | `pnpm db:migrate` (requiere `DATABASE_URL` + `DIRECT_URL` live)           | ⚠️ Alta — bloquea seed y tests reales  |
-| RLS policies  | `supabase/migrations/20260222000001_rls_policies.sql` aplicar en Supabase | ⚠️ Alta — antes de cualquier dato real |
-| Seed          | `pnpm db:seed` post-migrate                                               | Media                                  |
-| Sentry        | Setup pendiente desde Fase 0.18 (requiere cuenta + DSN)                   | Media                                  |
-| Attachments   | Upload Supabase Storage + signed URLs + bucket policies (Fase 2.12)       | Media — no bloquea Fase 3              |
-| Cache KV      | Vercel KV para echelon detail reads (Fase 2.13)                           | Media — requiere KV configurado        |
+### 3.0 Sección A — Resolvibles en código: ✅ COMPLETA (2026-02-25)
 
-### 3.1 Fase 3 — Ítems diferidos (documentado)
+| Item                                                      | Estado      | Archivos                                                 |
+| --------------------------------------------------------- | ----------- | -------------------------------------------------------- |
+| A1 — crypto.ts AES-256-GCM                                | ✅ Resuelto | `src/lib/utils/crypto.ts`                                |
+| A2 — Attachment module (repo + service + rutas + storage) | ✅ Resuelto | `src/modules/attachment/`, `src/lib/supabase/storage.ts` |
+| A3 — Email adapter (Resend + 4 templates)                 | ✅ Resuelto | `src/modules/integration/email.adapter.ts`               |
+| A4 — PDF adapter (@react-pdf/renderer)                    | ✅ Resuelto | `src/modules/integration/pdf.adapter.ts`                 |
+| A5 — withValidation params + Zod error details (422)      | ✅ Resuelto | `src/lib/middleware/with-validation.ts`                  |
+| A6 — scripts/ DB operacionales (7 scripts)                | ✅ Resuelto | `scripts/db-*.ts`                                        |
+| A7 — Cache invalidation en transición a VALIDATED         | ✅ Resuelto | `src/lib/cache/context-cache.ts`                         |
 
-Los siguientes ítems del plan Fase 3 se dejaron **diferidos** con justificación. Quedan documentados para retomarlos cuando corresponda.
+### 3.1 Sección B — Bloqueados por infraestructura: PENDIENTE
 
-| Ítem (plan)                                                   | Decisión                             | Justificación                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **3.10 API Key encryption (AES-256-GCM)**                     | Diferido                             | Cifrado de API keys de terceros en DB y entrega segura por Machine-ID requiere diseño de key derivation y rotación. Para MVP, GET /auth/devices/:machineId devuelve un token opaco de corta vida (15 min); es suficiente para que el Assistant llame al resto de endpoints. Implementación completa cuando existan integraciones externas (Jira, etc.) que requieran keys en DB. |
-| **3.12 Rate limits reales (Upstash)**                         | Stub activo                          | `withRateLimit` existe pero no aplica límites (pasa la request). Requiere Vercel KV o Upstash configurado y clave por `machineId`/userId. Plan: implementar en Fase 6 (Security) o cuando KV esté operativo; hasta entonces el stub no bloquea desarrollo.                                                                                                                       |
-| **Ranked retrieval por similarity (pgvector en GET context)** | Helper listo, no integrado en bundle | `src/lib/pgvector.ts` expone `findSummaryIdsBySimilarity(echelonId, orgId, queryEmbedding, limit)`. El context-bundle actual ordena por estado (VALIDATED primero) y trunca por tokens. Cuando el Assistant envíe un `queryEmbedding` (ej. en query param o body), el GET context puede usar el helper para ordenar summaries por similitud; requiere acuerdo de contrato.       |
-| **Contract test E2E (3.13)**                                  | Diferido a Fase 7                    | El plan Fase 7 incluye "Contract test: Assistant — Simulate full Assistant flow". Los tests unitarios de device y budget (184 tests totales) cubren la lógica; el flujo E2E enroll → validate → context → N summaries → usage se validará en Fase 7 con Playwright o similar.                                                                                                    |
+| Item                                                                | Prioridad                              | Desbloqueante              |
+| ------------------------------------------------------------------- | -------------------------------------- | -------------------------- |
+| B4 — Sentry (cuenta + DSN + wizard)                                 | ⚠️ Media                               | Cuenta sentry.io           |
+| B1 — DB migrations (`pnpm db:migrate:deploy`)                       | ⚠️ Alta — bloquea seed y datos reales  | Credenciales Supabase live |
+| B2 — RLS policies SQL (**escribir desde cero** — archivo no existe) | ⚠️ Alta — seguridad multi-tenant       | B1                         |
+| B3 — Seed data (`pnpm db:seed`)                                     | Media                                  | B1                         |
+| B5 — Vercel KV implementación real                                  | Media — desbloquea cache y rate limits | Vercel KV store            |
+| B6 — withRateLimit (Upstash)                                        | Media                                  | B5                         |
+| B7 — Job consumer/worker (Vercel Cron + API route)                  | Media — adapters A3+A4 listos          | Implementar route + cron   |
 
-**Invalidación de cache de contexto:** Implementada. Se invalida en: POST /sessions/:id/summary (creación), PATCH /required-fields/:id (cambio de RequiredFields). Cuando exista un endpoint de transición de summary (ej. PATCH summary con evento VALIDATE), ese handler debe llamar a `invalidateContextCache(echelonId)` tras transición a VALIDATED.
+### 3.2 Ítems diferidos intencionalmente
+
+| Ítem                                     | Decisión                                                              | Cuándo retomar                                   |
+| ---------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
+| Rate limits reales (Upstash)             | Stub activo — requiere B5 (Vercel KV)                                 | Post B5                                          |
+| Ranked retrieval pgvector en GET context | Helper listo (`src/lib/pgvector.ts`); requiere contrato con Assistant | Cuando Assistant envíe queryEmbedding            |
+| Contract test E2E (3.13)                 | Diferido a Fase 7                                                     | Plan Fase 7 incluye `assistant-contract.spec.ts` |
+| Edge Functions (Supabase)                | Reemplazadas por Vercel Cron (B7)                                     | Si jobs exceden timeout 10s                      |
 
 ---
 
@@ -200,13 +212,13 @@ Los siguientes ítems del plan Fase 3 se dejaron **diferidos** con justificació
 
 Para el plan completo de cada fase ver `DEVELOPMENT_PLAN_MVP.md`.
 
-| Fase       | Descripción                                                         | Estado         | Branch        |
-| ---------- | ------------------------------------------------------------------- | -------------- | ------------- |
-| **Fase 3** | Assistant Integration Contracts (devices, context bundle, pgvector) | 🔄 Activa      | `feat/fase-3` |
-| **Fase 4** | Async Jobs + Integration Engine + AI Consolidation                  | 🔄 En progreso | `feat/fase-4` |
-| **Fase 5** | Web Admin Frontend (13 pantallas) + i18n setup                      | ❌ No iniciada | `feat/fase-5` |
-| **Fase 6** | Security Hardening + Production Readiness                           | ❌ No iniciada | `feat/fase-6` |
-| **Fase 7** | Testing Quality Gate + E2E + Load Test                              | ❌ No iniciada | `feat/fase-7` |
+| Fase       | Descripción                                                         | Estado          | Branch        |
+| ---------- | ------------------------------------------------------------------- | --------------- | ------------- |
+| **Fase 3** | Assistant Integration Contracts (devices, context bundle, pgvector) | ✅ En `develop` | `feat/fase-3` |
+| **Fase 4** | Async Jobs + Integration Engine + AI Consolidation                  | ✅ En `develop` | `feat/fase-4` |
+| **Fase 5** | Web Admin Frontend (13 pantallas) + i18n setup                      | ❌ No iniciada  | `feat/fase-5` |
+| **Fase 6** | Security Hardening + Production Readiness                           | ❌ No iniciada  | `feat/fase-6` |
+| **Fase 7** | Testing Quality Gate + E2E + Load Test                              | ❌ No iniciada  | `feat/fase-7` |
 
 ---
 
@@ -380,3 +392,4 @@ docs(roadmap): Fase 3 status, deferred items, commit guide; add sequence diagram
 | 1.2     | 2026-02-24 | Decisiones de i18n: next-intl, cookie-based, es default, DB+cookie, API multilingual                            |
 | 1.3     | 2026-02-24 | Fase 3 implementada: estado, ítems diferidos documentados, guía de commits end-to-end; diagramas secuencia      |
 | 1.4     | 2026-02-24 | Fase 4 implementada: jobs, AI consolidation, integration engine, budget alerts; §8.1 implementación y diferidos |
+| 1.5     | 2026-02-25 | Deuda técnica Sección A completa; §3 reestructurado con estado real; Fase 3+4 marcadas ✅ en develop            |
