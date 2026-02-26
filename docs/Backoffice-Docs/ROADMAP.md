@@ -1,6 +1,6 @@
 # ROADMAP — Estado, Decisiones Pendientes y Próximas Fases
 
-**Versión:** 1.4 · **Fecha:** 2026-02-24 · **Estado:** Activo — documento vivo
+**Versión:** 1.6 · **Fecha:** 2026-02-25 · **Estado:** Activo — documento vivo
 **Complementa:** `DEVELOPMENT_PLAN_MVP.md` (fases, tareas, arquitectura) y `ENGINEERING_STANDARDS.md` (reglas de código)
 **Propósito:** Registrar el estado real del proyecto, decisiones de proceso tomadas y pendientes, y la estrategia de branches/commits que aplica desde Fase 3 en adelante.
 
@@ -13,21 +13,21 @@
 
 ### 1.1 Código vs. Commits — Estado real
 
-| Fase   | Código      | Tests        | `pnpm validate`         | Commit en repo  |
-| ------ | ----------- | ------------ | ----------------------- | --------------- |
-| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green                | ✅ En `develop` |
-| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green                | ✅ En `develop` |
-| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green                | ✅ En `develop` |
-| Fase 3 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
-| Fase 4 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
+| Fase   | Código      | Tests        | `pnpm validate` | Commit en repo |
+| ------ | ----------- | ------------ | --------------- | -------------- |
+| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green        | ✅ En `main`   |
+| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green        | ✅ En `main`   |
+| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green        | ✅ En `main`   |
+| Fase 3 | ✅ Completo | ✅ 230 tests | ✅ Green        | ✅ En `main`   |
+| Fase 4 | ✅ Completo | ✅ 230 tests | ✅ Green        | ✅ En `main`   |
 
 ### 1.2 Branches — Estado real
 
-| Branch        | Estado                                            |
-| ------------- | ------------------------------------------------- |
-| `main`        | ✅ Existe en remoto. Solo recibe merges validados |
-| `develop`     | ✅ Existe local y remoto. Fase 0+1+2 commiteadas  |
-| `feat/fase-3` | ✅ Existe local. Branch de trabajo activa         |
+| Branch        | Estado                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `main`        | ✅ En remoto. Sincronizado con develop. PR #3 mergeado 2026-02-25 (42 commits, 124 archivos) |
+| `develop`     | ✅ En remoto. Sincronizado con main post-merge PR #3                                         |
+| `feat/fase-5` | ⏳ Por crear al iniciar Fase 5                                                               |
 
 ---
 
@@ -189,7 +189,7 @@ El asistente **no detecta** el idioma — recibe instrucción explícita. Esto e
 
 | Item                                                                | Prioridad                              | Desbloqueante              |
 | ------------------------------------------------------------------- | -------------------------------------- | -------------------------- |
-| B4 — Sentry (cuenta + DSN + wizard)                                 | ⚠️ Media                               | Cuenta sentry.io           |
+| B4 — Sentry (cuenta + DSN + wizard + Vercel integration)            | ✅ Resuelto 2026-02-25                 | —                          |
 | B1 — DB migrations (`pnpm db:migrate:deploy`)                       | ⚠️ Alta — bloquea seed y datos reales  | Credenciales Supabase live |
 | B2 — RLS policies SQL (**escribir desde cero** — archivo no existe) | ⚠️ Alta — seguridad multi-tenant       | B1                         |
 | B3 — Seed data (`pnpm db:seed`)                                     | Media                                  | B1                         |
@@ -251,6 +251,124 @@ A partir de Fase 3, una fase se considera cerrada cuando:
 | i18n — persistencia | DB + cookie para preferencia de usuario                             | Agregar `preferredLocale` al modelo `User` en Fase 5   |
 | i18n — API messages | También multilenguaje (errores, validaciones)                       | Implementar junto con la UI en Fase 5                  |
 | i18n — asistente IA | Instrucción explícita en system prompt, no detección automática     | Implementar en Fase 4 (cuando se integre el asistente) |
+
+---
+
+## 7. Infraestructura y Plataformas
+
+### 7.1 Stack de Plataformas Activas
+
+| Plataforma         | Rol                                     | Estado             | Variables clave                                         |
+| ------------------ | --------------------------------------- | ------------------ | ------------------------------------------------------- |
+| **GitHub**         | Repositorio + trigger de CI/CD          | ✅ Activo          | —                                                       |
+| **GitHub Actions** | CI (lint + type-check + tests)          | ✅ Activo          | Secrets en repo settings                                |
+| **Vercel**         | Deploy preview + producción             | ✅ Activo          | `VERCEL_URL` (auto), env vars configuradas              |
+| **Supabase**       | PostgreSQL 15 + Storage + Auth          | ✅ Proyecto creado | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| **Sentry**         | Error monitoring + Performance + Replay | ✅ Activo          | `NEXT_PUBLIC_SENTRY_DSN`                                |
+| **Vercel KV**      | Cache Redis (kv.ts)                     | ⏳ Pendiente (B5)  | `KV_REST_API_URL`, `KV_REST_API_TOKEN`                  |
+
+---
+
+### 7.2 Flujo de CI/CD — Comportamiento esperado
+
+```
+Developer
+    │
+    ▼
+git push → feat/fase-N
+    │
+    ▼
+GitHub ──── Pull Request ──────────────────────────────────────────┐
+    │                                                               │
+    ▼                                                               │
+GitHub Actions (CI)                                                 │
+    ├── pnpm lint          ← ESLint flat config                     │
+    ├── pnpm type-check    ← tsc --noEmit strict                    │
+    ├── pnpm test:run      ← Vitest (230 tests)                     │
+    └── pnpm build         ← Next.js 15 build                       │
+         │                                                          │
+         ▼ (CI verde)                                               │
+Vercel Preview Deploy ◄─────────────────────────────────────────────┘
+    ├── Build: pnpm build (Next.js + Sentry source maps upload)
+    ├── URL: project-planning-backoffice-[hash].vercel.app
+    └── Sentry: source maps subidos automáticamente vía integración
+         │
+         ▼ (PR mergeado a main)
+Vercel Production Deploy
+    ├── URL: project-planning-backoffice.vercel.app (o dominio custom)
+    └── Sentry: nueva release creada con source maps de producción
+```
+
+---
+
+### 7.3 Flujo de errores en runtime — Comportamiento esperado
+
+```
+Usuario (browser) ──── request ────► Next.js App (Vercel)
+                                           │
+                                    Error ocurre
+                                           │
+                          ┌────────────────┴────────────────┐
+                          │                                  │
+                   Server-side error                  Client-side error
+                   (instrumentation.ts)               (instrumentation-client.ts)
+                          │                                  │
+                          └──────────────┬──────────────────┘
+                                         │
+                                 Sentry SDK captura
+                                         │
+                                         ▼
+                          POST https://*.ingest.us.sentry.io
+                          (permitido en CSP connect-src)
+                                         │
+                                         ▼
+                          Sentry Dashboard (project-planning-backoffice)
+                          ├── Issue: stack trace decodificado (source maps)
+                          ├── User context: PII capturado (sendDefaultPii: true)
+                          ├── Performance: traza de la request (tracesSampleRate)
+                          └── Replay: video de la sesión si hay error (replaysOnErrorSampleRate: 1.0)
+```
+
+**Sample rates configurados:**
+
+| Métrica                    | Desarrollo | Producción |
+| -------------------------- | ---------- | ---------- |
+| `tracesSampleRate`         | 1.0 (100%) | 0.2 (20%)  |
+| `replaysSessionSampleRate` | 1.0 (100%) | 0.1 (10%)  |
+| `replaysOnErrorSampleRate` | 1.0 (100%) | 1.0 (100%) |
+
+---
+
+### 7.4 Flujo de datos — Supabase
+
+```
+Next.js App (Vercel)
+    │
+    ├── Prisma Client ──────────────► Supabase PostgreSQL 15
+    │   ├── Pool: DATABASE_URL (PgBouncer port 6543)
+    │   └── Direct: DIRECT_URL (port 5432, solo migrations)
+    │
+    ├── @supabase/ssr ──────────────► Supabase Auth + RLS
+    │   ├── createServerClient (SSR, cookies)
+    │   └── createBrowserClient (cliente)
+    │
+    └── Supabase Storage ───────────► Buckets (attachments)
+        └── signed URLs (acceso temporal a archivos)
+```
+
+**Pendiente (B1+B2):** `pnpm db:migrate:deploy` + RLS policies aplicadas.
+
+---
+
+### 7.5 Variables de entorno — Referencia
+
+| Variable                    | Quién la setea                                       | Para qué sirve                                                                                           | Cuándo se necesita                        |
+| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `VERCEL_URL`                | **Vercel automáticamente** — no setear a mano        | URL del deploy actual (ej: `project-xxx.vercel.app`). Varía por deploy. Usada para URLs absolutas en SSR | Disponible en cada deploy automáticamente |
+| `KV_REST_API_URL`           | Developer (desde Vercel dashboard al crear el store) | Endpoint REST del store Vercel KV (Redis). Usado por `@vercel/kv` para leer/escribir cache               | Al implementar B5                         |
+| `KV_REST_API_TOKEN`         | Developer (desde Vercel dashboard al crear el store) | Token de autenticación del store KV. Requerido junto con `KV_REST_API_URL`                               | Al implementar B5                         |
+| `NEXT_PUBLIC_SENTRY_DSN`    | Developer                                            | DSN del proyecto Sentry. El SDK lo usa para saber a dónde enviar los eventos                             | ✅ Ya configurado en `.env` y en Vercel   |
+| `SUPABASE_SERVICE_ROLE_KEY` | Developer                                            | Service role key — bypass de RLS. Solo en server-side (nunca al cliente)                                 | ✅ Ya configurado                         |
 
 ---
 
@@ -393,3 +511,4 @@ docs(roadmap): Fase 3 status, deferred items, commit guide; add sequence diagram
 | 1.3     | 2026-02-24 | Fase 3 implementada: estado, ítems diferidos documentados, guía de commits end-to-end; diagramas secuencia      |
 | 1.4     | 2026-02-24 | Fase 4 implementada: jobs, AI consolidation, integration engine, budget alerts; §8.1 implementación y diferidos |
 | 1.5     | 2026-02-25 | Deuda técnica Sección A completa; §3 reestructurado con estado real; Fase 3+4 marcadas ✅ en develop            |
+| 1.6     | 2026-02-25 | B4 Sentry resuelto; PR #3 mergeado a main (230 tests, 42 commits); §7 infraestructura y plataformas agregado    |
