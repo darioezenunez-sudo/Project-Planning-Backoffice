@@ -1,0 +1,29 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "companies": "Companies",
+    "echelons": "Echelons",
+    "devices": "Devices",
+    "budget": "Budget",
+    "auditLog": "Audit log",
+    "settings": "Settings"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot your password?",
+    "noAccess": "You don't have access. Contact the administrator."
+  }
+}
