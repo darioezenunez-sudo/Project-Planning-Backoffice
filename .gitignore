@@ -35,6 +35,9 @@ playwright-report
 test-results
 coverage
 
+# V0 reference (Fase 5 migration source — not part of main app)
+V0 zip*/
+
 # Misc
 *.pem
 
