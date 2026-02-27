@@ -25,6 +25,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Prevent pnpm hoisting issues with OpenTelemetry / Sentry instrumentation
+  serverExternalPackages: [
+    '@opentelemetry/instrumentation',
+    'import-in-the-middle',
+    'require-in-the-middle',
+  ],
   async headers() {
     return Promise.resolve([
       {
