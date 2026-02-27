@@ -6,7 +6,9 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "back": "Volver"
+    "back": "Volver",
+    "empty": "No hay datos",
+    "seeAll": "Ver todos"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -25,5 +27,60 @@
     "password": "Contraseña",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "noAccess": "No tenés acceso, contactá al administrador."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "activeEchelons": "Echelons Activos",
+    "sessionsThisMonth": "Sesiones este mes",
+    "summariesPending": "Summaries Pendientes",
+    "devicesOnline": "Dispositivos Online",
+    "onlineNow": "en línea ahora",
+    "requireReview": "Requieren revisión",
+    "tokenUsage": "Uso de tokens — últimos 6 meses",
+    "tokensThousands": "tokens × 1.000",
+    "activeEchelonsList": "Echelons activos",
+    "recentActivity": "Actividad reciente",
+    "noActivity": "Aún no hay actividad reciente."
+  },
+  "companies": {
+    "title": "Empresas",
+    "newCompany": "Nueva empresa",
+    "searchPlaceholder": "Buscar empresa...",
+    "name": "Empresa",
+    "industry": "Industria",
+    "products": "Productos",
+    "created": "Creado",
+    "empty": "No hay empresas. Creá la primera.",
+    "detail": "Detalle de empresa"
+  },
+  "products": {
+    "detail": "Detalle de producto",
+    "empty": "Producto no encontrado."
+  },
+  "echelons": {
+    "detail": "Detalle de echelon",
+    "sessions": "Sesiones",
+    "empty": "Echelon no encontrado."
+  },
+  "sessions": {
+    "detail": "Sesión",
+    "summary": "Resumen",
+    "empty": "Sesión no encontrada."
+  },
+  "devices": {
+    "title": "Dispositivos",
+    "empty": "No hay dispositivos registrados."
+  },
+  "budget": {
+    "title": "Presupuesto",
+    "empty": "No hay registros de uso."
+  },
+  "audit": {
+    "title": "Registro de Auditoría",
+    "empty": "No hay eventos de auditoría."
+  },
+  "settings": {
+    "title": "Configuración",
+    "profile": "Perfil"
   }
 }

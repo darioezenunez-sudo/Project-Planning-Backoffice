@@ -6,6 +6,17 @@ body {
   font-family: system-ui, sans-serif;
 }
 
+/* Auth pages: subtle dot pattern (Fase 5) — zinc-800/20 */
+.auth-bg {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    hsl(240 4.9% 83.9% / 0.2) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

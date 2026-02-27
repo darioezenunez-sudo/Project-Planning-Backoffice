@@ -6,7 +6,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "close": "Close",
-    "back": "Back"
+    "back": "Back",
+    "empty": "No data",
+    "seeAll": "See all"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -25,5 +27,60 @@
     "password": "Password",
     "forgotPassword": "Forgot your password?",
     "noAccess": "You don't have access. Contact the administrator."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "activeEchelons": "Active Echelons",
+    "sessionsThisMonth": "Sessions this month",
+    "summariesPending": "Summaries Pending",
+    "devicesOnline": "Devices Online",
+    "onlineNow": "online now",
+    "requireReview": "Require review",
+    "tokenUsage": "Token usage — last 6 months",
+    "tokensThousands": "tokens × 1,000",
+    "activeEchelonsList": "Active echelons",
+    "recentActivity": "Recent activity",
+    "noActivity": "No recent activity yet."
+  },
+  "companies": {
+    "title": "Companies",
+    "newCompany": "New company",
+    "searchPlaceholder": "Search company...",
+    "name": "Company",
+    "industry": "Industry",
+    "products": "Products",
+    "created": "Created",
+    "empty": "No companies. Create the first one.",
+    "detail": "Company detail"
+  },
+  "products": {
+    "detail": "Product detail",
+    "empty": "Product not found."
+  },
+  "echelons": {
+    "detail": "Echelon detail",
+    "sessions": "Sessions",
+    "empty": "Echelon not found."
+  },
+  "sessions": {
+    "detail": "Session",
+    "summary": "Summary",
+    "empty": "Session not found."
+  },
+  "devices": {
+    "title": "Devices",
+    "empty": "No devices registered."
+  },
+  "budget": {
+    "title": "Budget",
+    "empty": "No usage records."
+  },
+  "audit": {
+    "title": "Audit Log",
+    "empty": "No audit events."
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile"
   }
 }
