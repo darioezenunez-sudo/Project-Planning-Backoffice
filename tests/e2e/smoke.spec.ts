@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('home page loads', async ({ page }) => {
-  await page.goto('/');
+test('login page loads and shows app title', async ({ page }) => {
+  await page.goto('/login');
   await expect(page.getByRole('heading', { name: /Project Planning Backoffice/i })).toBeVisible();
 });
 
