@@ -8,6 +8,11 @@ import type { DeviceRepository, DeviceRow } from './device.repository';
 // ─── Service factory ───────────────────────────────────────────────────────────
 
 export function createDeviceService(repo: DeviceRepository) {
+  async function list(organizationId: string): Promise<Result<DeviceRow[]>> {
+    const devices = await repo.findByOrg(organizationId);
+    return ok(devices);
+  }
+
   async function enroll(
     organizationId: string,
     input: EnrollDeviceInput,
@@ -79,7 +84,7 @@ export function createDeviceService(repo: DeviceRepository) {
     return ok(device);
   }
 
-  return { enroll, validate, revoke, getById };
+  return { list, enroll, validate, revoke, getById };
 }
 
 export type DeviceService = ReturnType<typeof createDeviceService>;

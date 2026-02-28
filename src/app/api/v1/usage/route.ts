@@ -21,6 +21,25 @@ const jobService = createJobService(jobRepo);
 
 const BUDGET_LIMIT_ENV = 'BUDGET_LIMIT_TOKENS_PER_ORG_MONTH';
 
+// GET /api/v1/usage?monthYear=2026-02 — List usage records for the organization.
+export const GET = compose(
+  withErrorHandling,
+  withAuth,
+  withTenant,
+)(async (req: NextRequest) => {
+  const ctx = getRequestContext();
+  const organizationId = ctx?.organizationId ?? '';
+
+  const monthYear = req.nextUrl.searchParams.get('monthYear');
+  const result = await service.getUsageByOrgAndMonth(
+    organizationId,
+    monthYear ?? new Date().toISOString().slice(0, 7),
+  );
+  if (!result.ok) throw result.error;
+
+  return apiSuccess(result.value);
+});
+
 // POST /api/v1/usage — Record LLM usage (idempotent). Assistant or backoffice. Fase 4: budget alerts.
 export const POST = compose(
   withErrorHandling,

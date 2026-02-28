@@ -32,6 +32,14 @@ export function createDeviceRepository() {
     });
   }
 
+  async function findByOrg(organizationId: string): Promise<DeviceRow[]> {
+    return prisma.device.findMany({
+      where: { organizationId },
+      select: deviceSelect,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async function findByMachineId(machineId: string): Promise<DeviceRow | null> {
     return prisma.device.findFirst({
       where: { machineId },
@@ -96,6 +104,7 @@ export function createDeviceRepository() {
 
   return {
     findById,
+    findByOrg,
     findByMachineId,
     findByMachineIdAndOrg,
     create,

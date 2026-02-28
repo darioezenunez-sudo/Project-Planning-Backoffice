@@ -1,5 +1,8 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -16,12 +19,29 @@ const securityHeaders = [
   },
   {
     key: 'Content-Security-Policy',
-    value:
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io; frame-ancestors 'none';",
+    value: [
+      "default-src 'self'",
+      // Next.js + Sentry require unsafe-inline/unsafe-eval in dev; Vercel Analytics script
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self'",
+      // Sentry SDK spawns a web worker via blob: URL
+      'worker-src blob:',
+      // API + WebSocket + Sentry ingest + Vercel Analytics/Vitals
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://vitals.vercel-insights.com",
+      "frame-ancestors 'none'",
+    ].join('; '),
   },
 ];
 
 const nextConfig: NextConfig = {
+  // Prevent pnpm hoisting issues with OpenTelemetry / Sentry instrumentation
+  serverExternalPackages: [
+    '@opentelemetry/instrumentation',
+    'import-in-the-middle',
+    'require-in-the-middle',
+  ],
   async headers() {
     return Promise.resolve([
       {
@@ -32,7 +52,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withNextIntl(nextConfig), {
   org: 'darioezenunez',
   project: 'project-planning-backoffice',
 
