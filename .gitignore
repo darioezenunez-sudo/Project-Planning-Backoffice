@@ -34,6 +34,10 @@ next-env.d.ts
 playwright-report
 test-results
 coverage
+e2e-output.txt
+
+# V0 reference (Fase 5 migration source — not part of main app)
+V0 zip*/
 
 # Misc
 *.pem

@@ -1,6 +1,9 @@
+> ⚠️ **ARCHIVO LEGACY** (2026-02-28) — Reemplazado por versión consolidada y actualizada.
+> Estándares actualizados → `docs/ENGINEERING_STANDARDS.md`
+
 # Engineering Standards & Conventions — Project-Planning Backoffice
 
-**Versión:** 1.2 · **Fecha:** 2026-02-22 · **Estado:** Activo
+**Versión:** 1.2 · **Fecha:** 2026-02-22 · **Estado:** LEGACY — ver docs/ENGINEERING_STANDARDS.md
 **Complementa:** `DEVELOPMENT_PLAN_MVP.md` — este documento define las reglas que todo código debe cumplir. Para fases, tareas y arquitectura del monorepo, ver el Plan; para patrones de dominio (T.1), API (T.2), paginación (T.2) y capas transversales, el Plan referencia estos estándares.
 
 ---

@@ -1,4 +1,2 @@
-/** useEchelon — Fase 5 */
-export function useEchelon(_id: string) {
-  return { data: null, isLoading: false };
-}
+// Re-export from use-echelons.ts — the canonical echelon hooks are defined there.
+export { useEchelon, useEchelonSessions, useEchelons } from './use-echelons';
