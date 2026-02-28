@@ -117,7 +117,15 @@ function CompanyDetailInner({ companyId }: { companyId: string }) {
             <Button size="sm">Agregar producto</Button>
           </div>
           {products.isLoading && <Skeleton className="h-48 w-full" />}
-          {!products.isLoading && productList.length === 0 && (
+          {products.isError && (
+            <ErrorAlert
+              message={products.error?.message ?? 'Error al cargar productos'}
+              onRetry={() => {
+                void products.refetch();
+              }}
+            />
+          )}
+          {!products.isLoading && !products.isError && productList.length === 0 && (
             <Card className="rounded-xl border shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <EmptyState
@@ -129,7 +137,7 @@ function CompanyDetailInner({ companyId }: { companyId: string }) {
               </CardContent>
             </Card>
           )}
-          {!products.isLoading && productList.length > 0 && (
+          {!products.isLoading && !products.isError && productList.length > 0 && (
             <Card className="rounded-xl border shadow-sm">
               <CardContent className="p-0">
                 <Table>

@@ -120,9 +120,16 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
                 </div>
               </CardHeader>
               <CardContent>
-                {summary.isLoading ? (
-                  <Skeleton className="h-32 w-full" />
-                ) : (
+                {summary.isLoading && <Skeleton className="h-32 w-full" />}
+                {summary.isError && (
+                  <ErrorAlert
+                    message={summary.error?.message ?? 'Error al cargar el summary'}
+                    onRetry={() => {
+                      void summary.refetch();
+                    }}
+                  />
+                )}
+                {!summary.isLoading && !summary.isError && (
                   <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                     {summaryData?.rawContent ?? 'Sin contenido generado.'}
                   </div>
@@ -156,12 +163,17 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
                   {editContent.length} caracteres
                 </p>
                 <Button
-                  className="mt-4"
+                  className="mt-4 w-full sm:w-auto"
                   onClick={handleSave}
                   disabled={updateSummary.isPending || editContent === displayContent}
                 >
                   {updateSummary.isPending ? 'Guardando...' : 'Guardar cambios'}
                 </Button>
+                {updateSummary.isError && (
+                  <ErrorAlert
+                    message={updateSummary.error?.message ?? 'Error al guardar los cambios'}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

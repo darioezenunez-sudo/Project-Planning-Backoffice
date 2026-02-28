@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+import { ErrorAlert } from '@/components/shared/error-alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,6 +25,15 @@ export function SettingsContent() {
             <Skeleton className="h-10 w-full" />
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (user == null) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <ErrorAlert message="No se pudo cargar la información del usuario" />
       </div>
     );
   }

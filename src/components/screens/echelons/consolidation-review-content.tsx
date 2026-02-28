@@ -82,9 +82,21 @@ export function ConsolidationReviewContent({ echelonId }: { echelonId: string })
             <Separator className="my-4" />
             <p className="mb-3 text-sm font-medium">Summaries incluidos ({sessionsList.length}):</p>
             <div className="flex flex-col gap-2">
-              {sessionsList.length === 0 ? (
+              {sessions.isLoading && <Skeleton className="h-20 w-full" />}
+              {sessions.isError && (
+                <ErrorAlert
+                  message={sessions.error?.message ?? 'Error al cargar sesiones'}
+                  onRetry={() => {
+                    void sessions.refetch();
+                  }}
+                />
+              )}
+              {!sessions.isLoading && !sessions.isError && sessionsList.length === 0 && (
                 <p className="text-xs text-muted-foreground">Sin sesiones.</p>
-              ) : (
+              )}
+              {!sessions.isLoading &&
+                !sessions.isError &&
+                sessionsList.length > 0 &&
                 sessionsList.map((s) => (
                   <div
                     key={s.id}
@@ -99,8 +111,7 @@ export function ConsolidationReviewContent({ echelonId }: { echelonId: string })
                       <ExternalLink className="size-3" />
                     </a>
                   </div>
-                ))
-              )}
+                ))}
             </div>
           </CardContent>
         </Card>

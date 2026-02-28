@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { ErrorAlert } from '@/components/shared/error-alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBudget } from '@/hooks/use-budget';
@@ -42,6 +43,21 @@ export function DashboardChart() {
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[220px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (budget.isError) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <ErrorAlert
+            message={budget.error?.message ?? 'Error al cargar datos de uso de tokens'}
+            onRetry={() => {
+              void budget.refetch();
+            }}
+          />
         </CardContent>
       </Card>
     );

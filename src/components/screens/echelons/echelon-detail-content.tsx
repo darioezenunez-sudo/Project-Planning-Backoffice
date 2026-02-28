@@ -96,19 +96,19 @@ export function EchelonDetailContent({ echelonId }: { echelonId: string }) {
             {state.replace('_', ' ')}
           </Badge>
         </div>
-        <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Progress value={progress} className="h-2 w-48" />
+            <Progress value={progress} className="h-2 w-32 sm:w-48" />
             <span>
-              {completedCount} de {totalFields} campos completados
+              {completedCount}/{totalFields} campos
             </span>
           </div>
-          <span>·</span>
+          <span className="hidden sm:inline">·</span>
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="size-3.5" />
             {sessionsList.length} sesiones
           </span>
-          <span>·</span>
+          <span className="hidden sm:inline">·</span>
           {lastSessionDate != null ? (
             <span className="inline-flex items-center gap-1">
               <Clock className="size-3.5" />
@@ -121,7 +121,7 @@ export function EchelonDetailContent({ echelonId }: { echelonId: string }) {
       </div>
 
       <Tabs defaultValue="requerimientos" className="w-full">
-        <TabsList className="sticky top-14 z-10 h-auto w-full justify-start rounded-none border-b bg-background p-0">
+        <TabsList className="sticky top-14 z-10 h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-background p-0">
           <TabsTrigger
             value="requerimientos"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
@@ -168,10 +168,18 @@ export function EchelonDetailContent({ echelonId }: { echelonId: string }) {
             </Button>
           </div>
           {requiredFields.isLoading && <Skeleton className="h-32 w-full" />}
-          {!requiredFields.isLoading && fieldsList.length === 0 && (
+          {requiredFields.isError && (
+            <ErrorAlert
+              message={requiredFields.error?.message ?? 'Error al cargar campos requeridos'}
+              onRetry={() => {
+                void requiredFields.refetch();
+              }}
+            />
+          )}
+          {!requiredFields.isLoading && !requiredFields.isError && fieldsList.length === 0 && (
             <p className="text-sm text-muted-foreground">No hay campos requeridos.</p>
           )}
-          {!requiredFields.isLoading && fieldsList.length > 0 && (
+          {!requiredFields.isLoading && !requiredFields.isError && fieldsList.length > 0 && (
             <div className="flex flex-col gap-2">
               {fieldsList.map((f) => (
                 <Card key={f.id} className="rounded-lg border p-4 hover:bg-muted/30">
@@ -227,10 +235,18 @@ export function EchelonDetailContent({ echelonId }: { echelonId: string }) {
             </Button>
           </div>
           {sessions.isLoading && <Skeleton className="h-48 w-full" />}
-          {!sessions.isLoading && sessionsList.length === 0 && (
+          {sessions.isError && (
+            <ErrorAlert
+              message={sessions.error?.message ?? 'Error al cargar sesiones'}
+              onRetry={() => {
+                void sessions.refetch();
+              }}
+            />
+          )}
+          {!sessions.isLoading && !sessions.isError && sessionsList.length === 0 && (
             <p className="text-sm text-muted-foreground">No hay sesiones.</p>
           )}
-          {!sessions.isLoading && sessionsList.length > 0 && (
+          {!sessions.isLoading && !sessions.isError && sessionsList.length > 0 && (
             <div className="relative ml-4 border-l border-muted">
               {sessionsList.map((sess, idx) => (
                 <div key={sess.id} className="relative pb-4 pl-8">
@@ -285,13 +301,16 @@ export function EchelonDetailContent({ echelonId }: { echelonId: string }) {
 
       {/* Action bar — TODO: botones según estado FSM */}
       <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 border-t bg-background/95 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Estado actual: {state} — {completedCount} de {totalFields} campos completados
+            Estado: <span className="font-medium">{state}</span> — {completedCount}/{totalFields}{' '}
+            campos
           </p>
-          <div className="flex gap-3">
-            <Button variant="outline">Ver consolidación anterior</Button>
-            <Button asChild>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+              Ver consolidación anterior
+            </Button>
+            <Button size="sm" className="w-full sm:w-auto" asChild>
               <Link href={`/echelons/${echelonId}/consolidation`}>
                 Consolidar echelon
                 <ChevronRight className="ml-2 size-4" />

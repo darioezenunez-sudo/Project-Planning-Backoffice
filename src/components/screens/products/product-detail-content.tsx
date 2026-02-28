@@ -96,7 +96,16 @@ export function ProductDetailContent({ productId }: { productId: string }) {
         </div>
       )}
 
-      {!echelons.isLoading && echelonList.length === 0 && (
+      {echelons.isError && (
+        <ErrorAlert
+          message={echelons.error?.message ?? 'Error al cargar echelons'}
+          onRetry={() => {
+            void echelons.refetch();
+          }}
+        />
+      )}
+
+      {!echelons.isLoading && !echelons.isError && echelonList.length === 0 && (
         <Card className="rounded-xl border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <EmptyState
@@ -114,7 +123,7 @@ export function ProductDetailContent({ productId }: { productId: string }) {
         </Card>
       )}
 
-      {!echelons.isLoading && echelonList.length > 0 && (
+      {!echelons.isLoading && !echelons.isError && echelonList.length > 0 && (
         <div className="flex flex-col gap-4">
           {echelonList.map((e) => {
             const completed = 0;

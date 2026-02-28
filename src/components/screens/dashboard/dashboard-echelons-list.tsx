@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
 import { EmptyState } from '@/components/shared/empty-state';
+import { ErrorAlert } from '@/components/shared/error-alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -50,9 +51,12 @@ export function DashboardEchelonsList() {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">
-            {echelons.error?.message ?? tCommon('error')}
-          </p>
+          <ErrorAlert
+            message={echelons.error?.message ?? tCommon('error')}
+            onRetry={() => {
+              void echelons.refetch();
+            }}
+          />
         </CardContent>
       </Card>
     );
@@ -77,7 +81,7 @@ export function DashboardEchelonsList() {
                 href={`/echelons/${e.id}`}
                 className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm font-medium hover:bg-muted/50"
               >
-                <span>{e.name ?? e.id}</span>
+                <span className="min-w-0 truncate pr-2">{e.name ?? e.id}</span>
                 {e.state != null && (
                   <Badge variant="outline" className={stateBadgeClass[e.state] ?? ''}>
                     {e.state.replace('_', ' ')}

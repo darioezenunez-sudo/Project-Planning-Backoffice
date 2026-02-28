@@ -4,6 +4,7 @@ import { Activity, CalendarDays, FileText, Monitor } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+import { ErrorAlert } from '@/components/shared/error-alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDevices } from '@/hooks/use-devices';
@@ -15,6 +16,7 @@ export function DashboardStats() {
   const devices = useDevices();
 
   const isLoading = echelons.isLoading || devices.isLoading;
+  const isError = echelons.isError || devices.isError;
   const activeCount = (echelons.data?.data ?? []).filter(
     (e: { state?: string }) => e.state != null && e.state !== 'CLOSED',
   ).length;
@@ -36,6 +38,18 @@ export function DashboardStats() {
           </Card>
         ))}
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorAlert
+        message="Error al cargar estadísticas del dashboard"
+        onRetry={() => {
+          void echelons.refetch();
+          void devices.refetch();
+        }}
+      />
     );
   }
 
