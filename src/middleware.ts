@@ -1,12 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import createMiddleware from 'next-intl/middleware';
 
-import { routing } from '@/i18n/routing';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const intlMiddleware = createMiddleware(routing);
+// next-intl createMiddleware is intentionally NOT used here.
+// With localePrefix:'never' it still performs internal URL rewrites
+// (e.g. /login → /es/login) that cause Next.js to return 404 because
+// the app has no [locale] folder structure. Locale detection is handled
+// by createNextIntlPlugin (next.config.ts) + src/i18n/request.ts, which
+// falls back to defaultLocale:'es' when no locale header is present.
 
 /** Routes unauthenticated users are allowed to visit (no auth guard). */
 const AUTH_PAGES = new Set(['/login', '/register']);
@@ -60,17 +63,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Step 3: Apply next-intl locale detection.
-  // localePrefix:'never' means no URL rewrites — locale is inferred from cookies /
-  // Accept-Language headers. The call still sets the locale cookie on the response.
-  const intlResponse = intlMiddleware(request);
-
-  // Propagate Supabase session cookies to the intl response so the browser
-  // receives the refreshed token on the same response.
-  supabaseResponse.cookies.getAll().forEach((cookie) => {
-    intlResponse.cookies.set(cookie.name, cookie.value);
-  });
-  return intlResponse;
+  // Return the supabaseResponse (pass-through with refreshed session cookies).
+  // Locale is determined by src/i18n/request.ts via createNextIntlPlugin — no
+  // middleware URL rewriting required.
+  return supabaseResponse;
 }
 
 export const config = {
