@@ -1,3 +1,6 @@
+> ⚠️ **ARCHIVO LEGACY** (2026-02-28) — Plan de integración original de Fase 5. Las pantallas ya fueron integradas.
+> Estado actual de Fase 5 → `CLAUDE.md` sección 5 (raíz del proyecto)
+
 # Plan: Fase 5 — Integración de pantallas V0 al proyecto principal
 
 ## Contexto

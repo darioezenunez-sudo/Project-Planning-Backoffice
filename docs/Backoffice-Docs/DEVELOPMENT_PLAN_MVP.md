@@ -1,3 +1,7 @@
+> ⚠️ **ARCHIVO LEGACY** (2026-02-28) — Contiene el plan técnico completo original. Útil como referencia de capas transversales y estructura de módulos planificada.
+> Para contexto de proyecto actualizado → `CLAUDE.md` (raíz del proyecto)
+> Para arquitectura técnica → `docs/ARCHITECTURE.md`
+
 # Plan de Desarrollo End-to-End — MVP Backoffice (Control Plane)
 
 **Versión:** 2.1 · **Fecha:** 2026-02-21 · **Estado:** Activo — Fase 0 en progreso

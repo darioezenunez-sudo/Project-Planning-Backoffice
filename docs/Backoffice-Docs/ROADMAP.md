@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVO LEGACY** (2026-02-28) — Este archivo contiene detalle histórico útil por fase.
+> Para contexto de proyecto actualizado → `CLAUDE.md` (raíz del proyecto)
+> Para arquitectura técnica → `docs/ARCHITECTURE.md`
+> Para estándares de código → `docs/ENGINEERING_STANDARDS.md`
+
 # ROADMAP — Estado, Decisiones Pendientes y Próximas Fases
 
 **Versión:** 1.6 · **Fecha:** 2026-02-25 · **Estado:** Activo — documento vivo

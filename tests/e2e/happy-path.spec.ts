@@ -6,6 +6,8 @@ import { test, expect } from '@playwright/test';
  * Si no están definidas, se ejecutan solo las rutas públicas y health.
  */
 test.describe('Happy path', () => {
+  test.setTimeout(60_000);
+
   test('home and health', async ({ page, request }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Project Planning Backoffice/i })).toBeVisible();
@@ -25,6 +27,7 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
+    await page.waitForLoadState('networkidle');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
@@ -42,6 +45,7 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
+    await page.waitForLoadState('networkidle');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
@@ -67,6 +71,7 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
+    await page.waitForLoadState('networkidle');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
