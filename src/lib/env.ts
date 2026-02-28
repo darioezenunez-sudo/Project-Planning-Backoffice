@@ -18,6 +18,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   JWT_SECRET: z.string().min(32).optional(),
   ENCRYPTION_KEY: z.string().min(32).optional(),
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -38,6 +39,7 @@ const parsed = envSchema.safeParse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  CRON_SECRET: process.env.CRON_SECRET,
 });
 
 if (!parsed.success) {
