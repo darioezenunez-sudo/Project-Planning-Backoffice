@@ -29,6 +29,7 @@ function makeDevice(overrides: Partial<DeviceRow> = {}): DeviceRow {
 function makeRepo(overrides: Partial<DeviceRepository> = {}): DeviceRepository {
   return {
     findById: vi.fn().mockResolvedValue(null),
+    findByOrg: vi.fn().mockResolvedValue([]),
     findByMachineId: vi.fn().mockResolvedValue(null),
     findByMachineIdAndOrg: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(makeDevice()),
@@ -45,6 +46,20 @@ describe('createDeviceService', () => {
   beforeEach(() => {
     repo = makeRepo();
     vi.clearAllMocks();
+  });
+
+  describe('list', () => {
+    it('returns devices for the organization', async () => {
+      const devices = [makeDevice(), makeDevice({ id: 'dev-222', machineId: 'machine-xyz' })];
+      vi.mocked(repo.findByOrg).mockResolvedValue(devices);
+
+      const service = createDeviceService(repo);
+      const result = await service.list(ORG_ID);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toHaveLength(2);
+      expect(repo.findByOrg).toHaveBeenCalledWith(ORG_ID);
+    });
   });
 
   describe('enroll', () => {

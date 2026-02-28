@@ -1,6 +1,11 @@
+> ⚠️ **ARCHIVO LEGACY** (2026-02-28) — Este archivo contiene detalle histórico útil por fase.
+> Para contexto de proyecto actualizado → `CLAUDE.md` (raíz del proyecto)
+> Para arquitectura técnica → `docs/ARCHITECTURE.md`
+> Para estándares de código → `docs/ENGINEERING_STANDARDS.md`
+
 # ROADMAP — Estado, Decisiones Pendientes y Próximas Fases
 
-**Versión:** 1.4 · **Fecha:** 2026-02-24 · **Estado:** Activo — documento vivo
+**Versión:** 1.6 · **Fecha:** 2026-02-25 · **Estado:** Activo — documento vivo
 **Complementa:** `DEVELOPMENT_PLAN_MVP.md` (fases, tareas, arquitectura) y `ENGINEERING_STANDARDS.md` (reglas de código)
 **Propósito:** Registrar el estado real del proyecto, decisiones de proceso tomadas y pendientes, y la estrategia de branches/commits que aplica desde Fase 3 en adelante.
 
@@ -13,21 +18,21 @@
 
 ### 1.1 Código vs. Commits — Estado real
 
-| Fase   | Código      | Tests        | `pnpm validate`         | Commit en repo  |
-| ------ | ----------- | ------------ | ----------------------- | --------------- |
-| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green                | ✅ En `develop` |
-| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green                | ✅ En `develop` |
-| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green                | ✅ En `develop` |
-| Fase 3 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
-| Fase 4 | ✅ Completo | ✅ 184 tests | ✅ Green (post-commits) | ✅ En `develop` |
+| Fase   | Código      | Tests        | `pnpm validate` | Commit en repo |
+| ------ | ----------- | ------------ | --------------- | -------------- |
+| Fase 0 | ✅ Completo | ✅ Passing   | ✅ Green        | ✅ En `main`   |
+| Fase 1 | ✅ Completo | ✅ 97 tests  | ✅ Green        | ✅ En `main`   |
+| Fase 2 | ✅ Completo | ✅ 173 tests | ✅ Green        | ✅ En `main`   |
+| Fase 3 | ✅ Completo | ✅ 230 tests | ✅ Green        | ✅ En `main`   |
+| Fase 4 | ✅ Completo | ✅ 230 tests | ✅ Green        | ✅ En `main`   |
 
 ### 1.2 Branches — Estado real
 
-| Branch        | Estado                                            |
-| ------------- | ------------------------------------------------- |
-| `main`        | ✅ Existe en remoto. Solo recibe merges validados |
-| `develop`     | ✅ Existe local y remoto. Fase 0+1+2 commiteadas  |
-| `feat/fase-3` | ✅ Existe local. Branch de trabajo activa         |
+| Branch        | Estado                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `main`        | ✅ En remoto. Sincronizado con develop. PR #3 mergeado 2026-02-25 (42 commits, 124 archivos) |
+| `develop`     | ✅ En remoto. Sincronizado con main post-merge PR #3                                         |
+| `feat/fase-5` | ⏳ Por crear al iniciar Fase 5                                                               |
 
 ---
 
@@ -189,7 +194,7 @@ El asistente **no detecta** el idioma — recibe instrucción explícita. Esto e
 
 | Item                                                                | Prioridad                              | Desbloqueante              |
 | ------------------------------------------------------------------- | -------------------------------------- | -------------------------- |
-| B4 — Sentry (cuenta + DSN + wizard)                                 | ⚠️ Media                               | Cuenta sentry.io           |
+| B4 — Sentry (cuenta + DSN + wizard + Vercel integration)            | ✅ Resuelto 2026-02-25                 | —                          |
 | B1 — DB migrations (`pnpm db:migrate:deploy`)                       | ⚠️ Alta — bloquea seed y datos reales  | Credenciales Supabase live |
 | B2 — RLS policies SQL (**escribir desde cero** — archivo no existe) | ⚠️ Alta — seguridad multi-tenant       | B1                         |
 | B3 — Seed data (`pnpm db:seed`)                                     | Media                                  | B1                         |
@@ -251,6 +256,124 @@ A partir de Fase 3, una fase se considera cerrada cuando:
 | i18n — persistencia | DB + cookie para preferencia de usuario                             | Agregar `preferredLocale` al modelo `User` en Fase 5   |
 | i18n — API messages | También multilenguaje (errores, validaciones)                       | Implementar junto con la UI en Fase 5                  |
 | i18n — asistente IA | Instrucción explícita en system prompt, no detección automática     | Implementar en Fase 4 (cuando se integre el asistente) |
+
+---
+
+## 7. Infraestructura y Plataformas
+
+### 7.1 Stack de Plataformas Activas
+
+| Plataforma         | Rol                                     | Estado             | Variables clave                                         |
+| ------------------ | --------------------------------------- | ------------------ | ------------------------------------------------------- |
+| **GitHub**         | Repositorio + trigger de CI/CD          | ✅ Activo          | —                                                       |
+| **GitHub Actions** | CI (lint + type-check + tests)          | ✅ Activo          | Secrets en repo settings                                |
+| **Vercel**         | Deploy preview + producción             | ✅ Activo          | `VERCEL_URL` (auto), env vars configuradas              |
+| **Supabase**       | PostgreSQL 15 + Storage + Auth          | ✅ Proyecto creado | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| **Sentry**         | Error monitoring + Performance + Replay | ✅ Activo          | `NEXT_PUBLIC_SENTRY_DSN`                                |
+| **Vercel KV**      | Cache Redis (kv.ts)                     | ⏳ Pendiente (B5)  | `KV_REST_API_URL`, `KV_REST_API_TOKEN`                  |
+
+---
+
+### 7.2 Flujo de CI/CD — Comportamiento esperado
+
+```
+Developer
+    │
+    ▼
+git push → feat/fase-N
+    │
+    ▼
+GitHub ──── Pull Request ──────────────────────────────────────────┐
+    │                                                               │
+    ▼                                                               │
+GitHub Actions (CI)                                                 │
+    ├── pnpm lint          ← ESLint flat config                     │
+    ├── pnpm type-check    ← tsc --noEmit strict                    │
+    ├── pnpm test:run      ← Vitest (230 tests)                     │
+    └── pnpm build         ← Next.js 15 build                       │
+         │                                                          │
+         ▼ (CI verde)                                               │
+Vercel Preview Deploy ◄─────────────────────────────────────────────┘
+    ├── Build: pnpm build (Next.js + Sentry source maps upload)
+    ├── URL: project-planning-backoffice-[hash].vercel.app
+    └── Sentry: source maps subidos automáticamente vía integración
+         │
+         ▼ (PR mergeado a main)
+Vercel Production Deploy
+    ├── URL: project-planning-backoffice.vercel.app (o dominio custom)
+    └── Sentry: nueva release creada con source maps de producción
+```
+
+---
+
+### 7.3 Flujo de errores en runtime — Comportamiento esperado
+
+```
+Usuario (browser) ──── request ────► Next.js App (Vercel)
+                                           │
+                                    Error ocurre
+                                           │
+                          ┌────────────────┴────────────────┐
+                          │                                  │
+                   Server-side error                  Client-side error
+                   (instrumentation.ts)               (instrumentation-client.ts)
+                          │                                  │
+                          └──────────────┬──────────────────┘
+                                         │
+                                 Sentry SDK captura
+                                         │
+                                         ▼
+                          POST https://*.ingest.us.sentry.io
+                          (permitido en CSP connect-src)
+                                         │
+                                         ▼
+                          Sentry Dashboard (project-planning-backoffice)
+                          ├── Issue: stack trace decodificado (source maps)
+                          ├── User context: PII capturado (sendDefaultPii: true)
+                          ├── Performance: traza de la request (tracesSampleRate)
+                          └── Replay: video de la sesión si hay error (replaysOnErrorSampleRate: 1.0)
+```
+
+**Sample rates configurados:**
+
+| Métrica                    | Desarrollo | Producción |
+| -------------------------- | ---------- | ---------- |
+| `tracesSampleRate`         | 1.0 (100%) | 0.2 (20%)  |
+| `replaysSessionSampleRate` | 1.0 (100%) | 0.1 (10%)  |
+| `replaysOnErrorSampleRate` | 1.0 (100%) | 1.0 (100%) |
+
+---
+
+### 7.4 Flujo de datos — Supabase
+
+```
+Next.js App (Vercel)
+    │
+    ├── Prisma Client ──────────────► Supabase PostgreSQL 15
+    │   ├── Pool: DATABASE_URL (PgBouncer port 6543)
+    │   └── Direct: DIRECT_URL (port 5432, solo migrations)
+    │
+    ├── @supabase/ssr ──────────────► Supabase Auth + RLS
+    │   ├── createServerClient (SSR, cookies)
+    │   └── createBrowserClient (cliente)
+    │
+    └── Supabase Storage ───────────► Buckets (attachments)
+        └── signed URLs (acceso temporal a archivos)
+```
+
+**Pendiente (B1+B2):** `pnpm db:migrate:deploy` + RLS policies aplicadas.
+
+---
+
+### 7.5 Variables de entorno — Referencia
+
+| Variable                    | Quién la setea                                       | Para qué sirve                                                                                           | Cuándo se necesita                        |
+| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `VERCEL_URL`                | **Vercel automáticamente** — no setear a mano        | URL del deploy actual (ej: `project-xxx.vercel.app`). Varía por deploy. Usada para URLs absolutas en SSR | Disponible en cada deploy automáticamente |
+| `KV_REST_API_URL`           | Developer (desde Vercel dashboard al crear el store) | Endpoint REST del store Vercel KV (Redis). Usado por `@vercel/kv` para leer/escribir cache               | Al implementar B5                         |
+| `KV_REST_API_TOKEN`         | Developer (desde Vercel dashboard al crear el store) | Token de autenticación del store KV. Requerido junto con `KV_REST_API_URL`                               | Al implementar B5                         |
+| `NEXT_PUBLIC_SENTRY_DSN`    | Developer                                            | DSN del proyecto Sentry. El SDK lo usa para saber a dónde enviar los eventos                             | ✅ Ya configurado en `.env` y en Vercel   |
+| `SUPABASE_SERVICE_ROLE_KEY` | Developer                                            | Service role key — bypass de RLS. Solo en server-side (nunca al cliente)                                 | ✅ Ya configurado                         |
 
 ---
 
@@ -383,7 +506,171 @@ docs(roadmap): Fase 3 status, deferred items, commit guide; add sequence diagram
 
 ---
 
-## 9. Historial de Versiones
+## 9. Fase 5 — Frontend Web Admin (Guía Completa de Implementación)
+
+> Esta sección es la fuente de verdad para ejecutar Fase 5 íntegramente.
+> Para especificaciones detalladas de cada pantalla (prompts v0.app, datos, acciones) ver
+> `docs/Backoffice-Docs/FASE5_SCREENS.md`.
+
+### 9.1 Prerrequisitos — Estado al 2026-02-26 ✅
+
+Todos los bloqueantes de Fase 5 están resueltos:
+
+| Prerrequisito      | Estado                 | Detalle                                                               |
+| ------------------ | ---------------------- | --------------------------------------------------------------------- |
+| B1 — DB migrations | ✅ Resuelto 2026-02-26 | `20260226000000_init_full_schema` aplicado con `prisma migrate reset` |
+| B3 — Seed data     | ✅ Resuelto 2026-02-26 | 5 users, 2 echelons, required fields, 2 companies, 3 products         |
+| B4 — Sentry        | ✅ Resuelto 2026-02-25 | SDK + Vercel integration activa                                       |
+| Supabase Auth URLs | ✅ Resuelto 2026-02-26 | Site URL + Redirect URL `localhost:3000/**` configurados              |
+| Primer SUPER_ADMIN | ✅ Resuelto 2026-02-26 | UUID `5c1c8b3c-...` linkeado en `users` + `organization_members`      |
+
+---
+
+### 9.2 Paquetes a instalar al inicio de Fase 5
+
+```bash
+# Runtime
+pnpm add next-intl \
+  @tanstack/react-query @tanstack/react-table \
+  react-hook-form @hookform/resolvers \
+  recharts \
+  zustand \
+  @tiptap/react @tiptap/pm @tiptap/starter-kit \
+  @tiptap/extension-placeholder @tiptap/extension-character-count \
+  sonner
+
+# Dev / Testing
+pnpm add -D @testing-library/react @testing-library/user-event \
+  @playwright/test
+```
+
+**Nota:** `zod` ya está instalado. `shadcn/ui`, `tailwindcss-animate`, `clsx`, `tailwind-merge` ya están instalados.
+
+---
+
+### 9.3 Orden de implementación — 25 tareas
+
+Leyenda: 🤖 = Claude Code lo implementa · 👤 = Tarea manual del usuario · ⏳ = Bloqueado
+
+| #    | Tarea                                                                 | Tipo | Desbloqueante | Entregable                                |
+| ---- | --------------------------------------------------------------------- | ---- | ------------- | ----------------------------------------- |
+| 5.0  | Crear branch `feat/fase-5` desde develop                              | 🤖   | —             | Branch activo                             |
+| 5.1  | Instalar paquetes (ver §9.2)                                          | 🤖   | 5.0           | `pnpm-lock.yaml` actualizado              |
+| 5.2  | Design tokens en `tailwind.config.ts`                                 | 🤖   | 5.1           | Colores de estado, escala tipográfica     |
+| 5.3  | Setup next-intl: middleware + `messages/es.json` + `messages/en.json` | 🤖   | 5.1           | i18n funcional, todos los textos en es/en |
+| 5.4  | App Shell: sidebar colapsable + header + layout.tsx del dashboard     | 🤖   | 5.2, 5.3      | Layout visible en `/dashboard`            |
+| 5.5  | TanStack Query provider + default options + React Query Devtools      | 🤖   | 5.1           | Provider en root layout                   |
+| 5.6  | Auth pages: Login + Register (invite) + Forgot Password               | 🤖   | 5.4           | Flujo completo Supabase Auth              |
+| 5.7  | 👤 Probar login en browser con usuario SUPER_ADMIN real               | 👤   | 5.6           | Sesión activa en `/dashboard`             |
+| 5.8  | Dashboard Home: stat cards + BarChart tokens + lista echelons + audit | 🤖   | 5.5, 5.7      | `/dashboard` funcional                    |
+| 5.9  | Companies CRUD: lista DataTable + Sheet form + Dialog delete          | 🤖   | 5.5           | `/companies` funcional                    |
+| 5.10 | Company Detail + Products CRUD nested                                 | 🤖   | 5.9           | `/companies/[id]` funcional               |
+| 5.11 | Product Detail + Echelons list con state badges                       | 🤖   | 5.10          | `/products/[id]` funcional                |
+| 5.12 | Echelon Detail — pantalla core (4 tabs + FSM action bar sticky)       | 🤖   | 5.11          | `/echelons/[id]` funcional                |
+| 5.13 | RequiredFields interactive + DecisionLinks (sub-componentes de 5.12)  | 🤖   | 5.12          | Tab Requerimientos completo               |
+| 5.14 | Session Detail + Summary Editor (Tiptap + diff view)                  | 🤖   | 5.12          | `/sessions/[id]` funcional                |
+| 5.15 | Consolidation Review + editor + approve flow (Pantalla 9)             | 🤖   | 5.14          | `/echelons/[id]/consolidation` funcional  |
+| 5.16 | Device Management (lista + enroll Dialog + revoke)                    | 🤖   | 5.5           | `/devices` funcional                      |
+| 5.17 | Budget Dashboard (Recharts charts + alert banner + tabla desglose)    | 🤖   | 5.5           | `/budget` funcional                       |
+| 5.18 | Audit Log Viewer (tabla filtrable + row expandible + export CSV)      | 🤖   | 5.5           | `/audit` funcional                        |
+| 5.19 | Settings / Profile (tabs: perfil, org, API keys, notificaciones)      | 🤖   | 5.5           | `/settings` funcional                     |
+| 5.20 | Realtime: hooks Supabase + banner online/offline                      | 🤖   | 5.12, 5.14    | Actualizaciones en vivo                   |
+| 5.21 | Error/Empty/Loading states sistemáticos en todas las pantallas        | 🤖   | 5.19          | Skeleton, empty state, alert error en c/u |
+| 5.22 | Component tests con Testing Library (≥70% coverage UI)                | 🤖   | 5.21          | `pnpm test` verde                         |
+| 5.23 | E2E Playwright: happy path login → echelon → summary → close          | 🤖   | 5.22          | `pnpm test:e2e` verde                     |
+| 5.24 | 👤 Review visual de todas las pantallas en browser (dark + light)     | 👤   | 5.23          | Aprobación visual antes del PR            |
+| 5.25 | PR `feat/fase-5` → `develop` + CI verde + merge                       | 🤖   | 5.24          | Fase 5 en develop                         |
+
+---
+
+### 9.4 Tareas manuales del usuario — Resumen
+
+| Tarea                                | Cuándo             | Por qué es manual                                                                    |
+| ------------------------------------ | ------------------ | ------------------------------------------------------------------------------------ |
+| 👤 Probar login en browser (5.7)     | Tras completar 5.6 | Requiere verificación visual + credenciales reales                                   |
+| 👤 Review visual de pantallas (5.24) | Antes del PR final | Validación subjetiva de UI/UX y branding                                             |
+| 👤 Crear Vercel KV store (B5)        | Antes de Fase 6    | Requiere acceso a Vercel dashboard → obtener `KV_REST_API_URL` y `KV_REST_API_TOKEN` |
+| 👤 Configurar Resend (email)         | Antes de Fase 6    | Requiere cuenta Resend + dominio verificado + API key                                |
+| 👤 Agregar dominio custom a Vercel   | Post-MVP           | Requiere acceso al registrador de dominio para DNS                                   |
+
+---
+
+### 9.5 Workflow v0.app → integración
+
+1. **Leer `FASE5_SCREENS.md §1.6`** — copiar el Prompt Base
+2. **Por cada pantalla** (en el orden del §3 de `FASE5_SCREENS.md`):
+   - Abrir [v0.dev](https://v0.dev)
+   - Pegar **Prompt Base** + **Prompt específico** de la pantalla
+   - Revisar y ajustar el resultado generado
+   - Exportar el código
+3. **Copiar componentes** a `src/components/screens/[nombre-pantalla]/`
+4. **Claude Code integra** cada pantalla:
+   - Conecta con TanStack Query → API endpoints existentes en `/api/v1/`
+   - Reemplaza strings hardcodeados por claves de `next-intl`
+   - Conecta estado con Zustand store (usuario, org actual, locale)
+   - Conecta auth con `@supabase/ssr` (middleware ya configurado)
+5. **`pnpm validate`** tras cada integración
+
+**Pantallas que NO se scaffoldean con v0.app:**
+
+| Pantalla            | Motivo                                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Echelon Detail (P7) | FSM condicional complejo, 4 tabs con lógica de negocio, action bar dinámica. Construir directamente con Claude Code. |
+
+---
+
+### 9.6 Guía de commits — Fase 5
+
+Ejecutar desde `feat/fase-5`. Máx. ~10 archivos por commit. Siempre `pnpm validate` antes del primer push.
+
+```
+feat(config):     tailwind.config.ts — design tokens, state colors, typography scale
+feat(i18n):       next-intl setup + messages/es.json + messages/en.json (todas las claves)
+feat(ui):         app shell — sidebar colapsable, header, layout.tsx del dashboard
+feat(auth):       login, register, forgot-password + Supabase session middleware
+feat(pages):      dashboard home — stat cards, recharts, recent activity (RSC + streaming)
+feat(pages):      companies list + detail + products CRUD
+feat(pages):      product detail + echelon list con state badges
+feat(pages):      echelon detail — core screen (4 tabs, FSM action bar)
+feat(pages):      session detail + summary editor (Tiptap + diff view)
+feat(pages):      consolidation review + device + budget + audit + settings
+feat(pages):      realtime hooks + connectivity banner
+feat(pages):      error/empty/loading states sistemáticos
+test(ui):         component tests Testing Library ≥70% coverage
+test(e2e):        Playwright happy path login → echelon → summary → close
+docs(roadmap):    Fase 5 complete — actualizar §1.1 estado y §1.2 branches
+```
+
+**Scopes permitidos en esta fase:**
+`ui | components | pages | auth | i18n | budget | device | integration | config | test | docs | roadmap`
+
+---
+
+### 9.7 Definition of Done — Fase 5
+
+Una pantalla se considera **completa** cuando:
+
+1. ✅ Renderiza sin errores en dev (`pnpm dev`) y en build (`pnpm build`)
+2. ✅ Dark mode funcional (no hay colores rotos en tema oscuro)
+3. ✅ Carga data real desde la API (no datos hardcodeados)
+4. ✅ Estado vacío, loading (Skeleton) y error (Alert) implementados
+5. ✅ Textos en español vía `next-intl` (no strings hardcodeados en el JSX)
+6. ✅ TypeScript strict: sin `any`, sin errores `tsc --noEmit`
+
+Fase 5 se considera **cerrada** cuando:
+
+1. ✅ Las 13 pantallas pasan los 6 criterios de arriba
+2. ✅ Login funciona con Supabase Auth real en browser
+3. ✅ Flujo completo echelon: crear → sesión → summary → consolidar → cerrar funciona E2E
+4. ✅ `pnpm validate` green (lint + tsc + 230+ unit tests)
+5. ✅ E2E Playwright happy path verde
+6. ✅ Responsive en mobile (375px) para las pantallas de Dashboard, Echelon Detail y Session Detail
+7. ✅ PR `feat/fase-5` → `develop` mergeado con CI verde
+8. ✅ Review visual aprobada por el usuario (tarea 5.24)
+
+---
+
+## 10. Historial de Versiones
 
 | Versión | Fecha      | Cambios                                                                                                         |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
@@ -393,3 +680,5 @@ docs(roadmap): Fase 3 status, deferred items, commit guide; add sequence diagram
 | 1.3     | 2026-02-24 | Fase 3 implementada: estado, ítems diferidos documentados, guía de commits end-to-end; diagramas secuencia      |
 | 1.4     | 2026-02-24 | Fase 4 implementada: jobs, AI consolidation, integration engine, budget alerts; §8.1 implementación y diferidos |
 | 1.5     | 2026-02-25 | Deuda técnica Sección A completa; §3 reestructurado con estado real; Fase 3+4 marcadas ✅ en develop            |
+| 1.6     | 2026-02-25 | B4 Sentry resuelto; PR #3 mergeado a main (230 tests, 42 commits); §7 infraestructura y plataformas agregado    |
+| 1.7     | 2026-02-26 | Prereqs Fase 5 resueltos (B1+B3+Auth+SUPER_ADMIN); §9 guía completa Fase 5 agregado; FASE5_SCREENS.md creado    |

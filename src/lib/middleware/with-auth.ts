@@ -1,4 +1,5 @@
-import type { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import type { NextRequest, NextResponse } from 'next/server';
 
 import { AppError } from '../errors/app-error';
 import { ErrorCode } from '../errors/error-codes';
@@ -12,10 +13,9 @@ import type { Middleware, RouteContext, RouteHandler } from './compose';
 /**
  * Validates the Supabase JWT and injects userId into the request context.
  *
- * Strategy:
- * 1. Use Supabase `auth.getUser()` which validates the JWT against Supabase's
- *    public key — no local secret needed.
- * 2. The token is passed as a Bearer header (used by Assistant/API clients).
+ * Strategy (two channels):
+ * 1. Bearer token — used by Assistant/API clients (Electron app).
+ * 2. Cookie session — used by browser clients after Supabase login.
  * 3. On failure → 401 UNAUTHORIZED.
  *
  * Must be composed BEFORE withTenant.
@@ -26,40 +26,24 @@ export const withAuth: Middleware = (handler: RouteHandler) => {
     const requestId = existingCtx?.requestId ?? generateRequestId();
 
     try {
-      const token = extractBearerToken(req);
-      if (!token) {
-        const appError = new AppError(
-          ErrorCode.UNAUTHORIZED,
-          401,
-          'Missing Authorization header',
-          undefined,
-          undefined,
+      const userId = await resolveUserId(req, requestId);
+
+      if (!userId) {
+        logger.warn({ requestId }, 'withAuth: no valid session found');
+        return handleError(
+          new AppError(
+            ErrorCode.UNAUTHORIZED,
+            401,
+            'Authentication required',
+            undefined,
+            undefined,
+            requestId,
+          ),
           requestId,
         );
-        return handleError(appError, requestId);
       }
 
-      const supabase = createSupabaseServerClient();
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser(token);
-
-      if (error ?? !user) {
-        logger.warn({ requestId, reason: error?.message ?? 'no user' }, 'withAuth: unauthorized');
-        const appError = new AppError(
-          ErrorCode.UNAUTHORIZED,
-          401,
-          'Invalid or expired token',
-          undefined,
-          undefined,
-          requestId,
-        );
-        return handleError(appError, requestId);
-      }
-
-      // Inject userId into context (organizationId/role added later by withTenant).
-      return await runWithContext({ ...(existingCtx ?? {}), requestId, userId: user.id }, () =>
+      return await runWithContext({ ...(existingCtx ?? {}), requestId, userId }, () =>
         handler(req, context),
       );
     } catch (err) {
@@ -67,6 +51,52 @@ export const withAuth: Middleware = (handler: RouteHandler) => {
     }
   };
 };
+
+/** Tries Bearer token first, falls back to cookie session. Returns userId or undefined. */
+async function resolveUserId(req: NextRequest, requestId: string): Promise<string | undefined> {
+  const token = extractBearerToken(req);
+  if (token) {
+    return resolveFromBearer(token, requestId);
+  }
+  return resolveFromCookies(req);
+}
+
+async function resolveFromBearer(token: string, requestId: string): Promise<string | undefined> {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+  if (error ?? !user) {
+    logger.warn(
+      { requestId, reason: error?.message ?? 'no user' },
+      'withAuth: invalid bearer token',
+    );
+    return undefined;
+  }
+  return user.id;
+}
+
+async function resolveFromCookies(req: NextRequest): Promise<string | undefined> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) return undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- getAll/setAll is the non-deprecated API
+  const supabase = createServerClient(supabaseUrl, anonKey, {
+    cookies: {
+      getAll: () => req.cookies.getAll(),
+      setAll: () => {
+        // Read-only in route handler context — session refresh handled by middleware.ts
+      },
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id;
+}
 
 /** Extracts the Bearer token from the Authorization header. */
 function extractBearerToken(req: Request): string | undefined {
