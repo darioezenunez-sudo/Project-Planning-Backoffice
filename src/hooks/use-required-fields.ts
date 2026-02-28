@@ -21,7 +21,6 @@ export function useRequiredFields(echelonId: string | null) {
       const json = (await res.json()) as { data: unknown[] };
       return json.data;
     },
-    staleTime: 30_000,
     enabled: !!organizationId && echelonId != null && echelonId.length > 0,
   });
 }

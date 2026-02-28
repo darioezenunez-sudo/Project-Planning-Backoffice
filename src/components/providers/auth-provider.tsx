@@ -31,10 +31,15 @@ async function fetchMemberships(): Promise<MeResponse['data'] | null> {
 /**
  * AuthProvider — initializes the auth store on mount.
  *
- * 1. Subscribes to Supabase session changes (cookie-based browser session).
- * 2. On session → calls /api/v1/auth/me to discover the user's organization.
- * 3. Populates useAuthStore so all hooks can read organizationId.
- * 4. On sign-out → resets the store.
+ * Relies exclusively on onAuthStateChange. The INITIAL_SESSION event fires
+ * synchronously on subscription with the current session state, which covers
+ * both fresh logins and page refreshes without a second getUser() round-trip.
+ *
+ * Event flow:
+ *   INITIAL_SESSION (session)  → setUser + fetchMemberships → store ready
+ *   INITIAL_SESSION (no sess)  → mark isInitialized = true (redirect handled by middleware)
+ *   SIGNED_IN                  → update store + memberships
+ *   SIGNED_OUT / TOKEN_EXPIRED → reset store + redirect to /login
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -47,37 +52,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
         void fetchMemberships().then((data) => {
           if (data) {
             setMemberships(data.memberships);
           } else {
-            // Signed in but /me failed — mark initialized with empty state
+            // Autenticado pero /me falló — marcar inicializado con estado vacío
             setMemberships([]);
           }
         });
       } else {
-        reset();
-        router.push('/login');
-      }
-    });
-
-    // Eagerly load session on mount (covers page refresh / SSR → CSR handoff)
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser(user);
-        void fetchMemberships().then((data) => {
-          if (data) {
-            setMemberships(data.memberships);
-          } else {
-            setMemberships([]);
-          }
-        });
-      } else {
-        // No session — mark initialized so the app doesn't block on loading state
-        useAuthStore.setState({ isInitialized: true });
+        if (event === 'INITIAL_SESSION') {
+          // Sin sesión al cargar la página — el middleware redirige a /login.
+          // Solo marcar el store como inicializado para no bloquear la UI.
+          useAuthStore.setState({ isInitialized: true });
+        } else {
+          // SIGNED_OUT / TOKEN_EXPIRED / USER_DELETED → limpiar y redirigir
+          reset();
+          router.push('/login');
+        }
       }
     });
 

@@ -40,7 +40,6 @@ export function useAudit(params?: { cursor?: string; limit?: number }) {
         return emptyResult;
       }
     },
-    staleTime: 30_000,
     enabled: !!organizationId,
   });
 }

@@ -24,7 +24,6 @@ export function useDevices() {
       if (!res.ok) throw new Error(await res.text());
       return res.json() as Promise<DevicesListResponse>;
     },
-    staleTime: 30_000,
     enabled: !!organizationId,
   });
 }

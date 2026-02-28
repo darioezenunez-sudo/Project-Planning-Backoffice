@@ -35,7 +35,6 @@ export function useCompanies(params?: ListCompaniesQuery) {
       if (!res.ok) throw new Error(await res.text());
       return res.json() as Promise<CompaniesResponse>;
     },
-    staleTime: 30_000,
     enabled: !!organizationId,
   });
 }
@@ -52,7 +51,6 @@ export function useCompany(id: string | null) {
       const json = (await res.json()) as { data: Company };
       return json.data;
     },
-    staleTime: 30_000,
     enabled: !!organizationId && id != null && id.length > 0,
   });
 }
