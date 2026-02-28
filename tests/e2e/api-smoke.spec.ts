@@ -288,15 +288,16 @@ test.describe('API Smoke', () => {
     expect(Array.isArray(body.data)).toBe(true);
   });
 
-  test('GET /usage — retorna uso del mes actual', async ({ request }) => {
+  test('GET /usage — retorna array de registros de uso del mes actual', async ({ request }) => {
     const { orgId } = await authenticate(request);
     const month = new Date().toISOString().slice(0, 7);
     const res = await request.get(`/api/v1/usage?monthYear=${month}`, {
       headers: orgHeaders(orgId),
     });
     expect(res.status()).toBe(200);
-    const body = (await res.json()) as { data?: { totalTokens?: number } };
-    expect(typeof body.data?.totalTokens).toBe('number');
+    // getUsageByOrgAndMonth retorna UsageRecordRow[] — puede ser array vacío si no hay registros
+    const body = (await res.json()) as { data?: unknown[] };
+    expect(Array.isArray(body.data)).toBe(true);
   });
 
   // -------------------------------------------------------------------------
