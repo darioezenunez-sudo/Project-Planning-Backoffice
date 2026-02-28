@@ -2,6 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useTenant } from './use-tenant';
+
 /** Audit log — endpoint pendiente en Fase 6. Mock hasta entonces. */
 type AuditEntry = {
   id: string;
@@ -12,30 +14,33 @@ type AuditEntry = {
   entityId: string;
 };
 
+type AuditListResult = { data: AuditEntry[]; meta: { hasMore: boolean } };
+
 const auditKeys = {
   all: ['audit'] as const,
-  list: (params: Record<string, unknown>) => [...auditKeys.all, 'list', params] as const,
+  list: (orgId: string, params: Record<string, unknown>) =>
+    [...auditKeys.all, 'list', orgId, params] as const,
 };
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
-}
+const emptyResult: AuditListResult = { data: [], meta: { hasMore: false } };
 
 export function useAudit(params?: { cursor?: string; limit?: number }) {
+  const { organizationId } = useTenant();
   const search = params == null ? '' : `?${new URLSearchParams(params as Record<string, string>)}`;
   return useQuery({
-    queryKey: auditKeys.list(params ?? {}),
-    queryFn: async (): Promise<{ data: AuditEntry[]; meta: { hasMore: boolean } }> => {
+    queryKey: auditKeys.list(organizationId ?? '', params ?? {}),
+    queryFn: async (): Promise<AuditListResult> => {
       try {
-        return await fetchJson<{ data: AuditEntry[]; meta: { hasMore: boolean } }>(
-          `/api/v1/audit${search}`,
-        );
+        const res = await fetch(`/api/v1/audit${search}`, {
+          headers: { 'X-Organization-Id': organizationId ?? '' },
+        });
+        if (!res.ok) return emptyResult;
+        return await (res.json() as Promise<AuditListResult>);
       } catch {
-        return { data: [], meta: { hasMore: false } };
+        return emptyResult;
       }
     },
     staleTime: 30_000,
+    enabled: !!organizationId,
   });
 }

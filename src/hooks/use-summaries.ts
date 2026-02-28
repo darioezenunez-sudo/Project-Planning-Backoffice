@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useTenant } from './use-tenant';
+
 type SummaryResponse = Record<string, unknown>;
 
 const summaryKeys = {
@@ -9,35 +11,39 @@ const summaryKeys = {
   bySession: (sessionId: string) => [...summaryKeys.all, 'session', sessionId] as const,
 };
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
-}
-
 export function useSummaryBySession(sessionId: string | null) {
+  const { organizationId } = useTenant();
   return useQuery({
     queryKey: summaryKeys.bySession(sessionId ?? ''),
     queryFn: async () => {
-      const res = await fetchJson<{ data: SummaryResponse }>(
-        `/api/v1/sessions/${String(sessionId)}/summary`,
-      );
-      return res.data;
+      const res = await fetch(`/api/v1/sessions/${String(sessionId)}/summary`, {
+        headers: { 'X-Organization-Id': organizationId ?? '' },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const json = (await res.json()) as { data: SummaryResponse };
+      return json.data;
     },
     staleTime: 5_000,
-    enabled: sessionId != null && sessionId.length > 0,
+    enabled: !!organizationId && sessionId != null && sessionId.length > 0,
   });
 }
 
 export function useUpdateSummary(sessionId: string) {
+  const { organizationId } = useTenant();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { rawContent?: string; editedContent?: string; version: number }) =>
-      fetchJson<SummaryResponse>(`/api/v1/sessions/${sessionId}/summary`, {
+    mutationFn: async (body: { rawContent?: string; editedContent?: string; version: number }) => {
+      const res = await fetch(`/api/v1/sessions/${sessionId}/summary`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Organization-Id': organizationId ?? '',
+        },
         body: JSON.stringify(body),
-      }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<SummaryResponse>;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: summaryKeys.bySession(sessionId) });
     },

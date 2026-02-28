@@ -2,6 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { useTenant } from './use-tenant';
+
 type SessionResponse = Record<string, unknown>;
 
 const sessionKeys = {
@@ -10,20 +12,19 @@ const sessionKeys = {
   detail: (id: string) => [...sessionKeys.details(), id] as const,
 };
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
-}
-
 export function useSession(id: string | null) {
+  const { organizationId } = useTenant();
   return useQuery({
     queryKey: sessionKeys.detail(id ?? ''),
     queryFn: async () => {
-      const res = await fetchJson<{ data: SessionResponse }>(`/api/v1/sessions/${String(id)}`);
-      return res.data;
+      const res = await fetch(`/api/v1/sessions/${String(id)}`, {
+        headers: { 'X-Organization-Id': organizationId ?? '' },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const json = (await res.json()) as { data: SessionResponse };
+      return json.data;
     },
     staleTime: 5_000,
-    enabled: id != null && id.length > 0,
+    enabled: !!organizationId && id != null && id.length > 0,
   });
 }

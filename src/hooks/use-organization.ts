@@ -1,4 +1,9 @@
-/** Organization name for shell — placeholder until tenant context exists. */
+'use client';
+
+import { useAuthStore } from '@/stores/auth-store';
+
+/** Returns the active organization name from the auth store. */
 export function useOrganization(): { name: string } {
-  return { name: 'Project Planning' };
+  const name = useAuthStore((s) => s.organizationName);
+  return { name: name ?? '' };
 }
