@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -36,6 +37,7 @@ async function fetchMemberships(): Promise<MeResponse['data'] | null> {
  * 4. On sign-out → resets the store.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const setMemberships = useAuthStore((s) => s.setMemberships);
   const reset = useAuthStore((s) => s.reset);
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         reset();
+        router.push('/login');
       }
     });
 
@@ -81,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, setMemberships, reset]);
+  }, [setUser, setMemberships, reset, router]);
 
   return <>{children}</>;
 }

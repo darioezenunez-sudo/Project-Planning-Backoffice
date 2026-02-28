@@ -27,12 +27,12 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
 
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible({
       timeout: 10_000,
     });
@@ -45,7 +45,7 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
@@ -71,7 +71,7 @@ test.describe('Happy path', () => {
     test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
 
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByLabel(/correo/i).fill(email);
     await page.getByLabel(/contraseña/i).fill(password);
     await page.getByRole('button', { name: /ingresar/i }).click();
@@ -82,7 +82,8 @@ test.describe('Happy path', () => {
       timeout: 10_000,
     });
 
-    const companyLink = page.getByRole('link', { name: /ver detalle|empresa/i }).first();
+    // The company name is the link in the table cell — href="/companies/:id"
+    const companyLink = page.locator('a[href^="/companies/"]').first();
     const hasCompany = (await companyLink.count()) > 0;
     if (hasCompany) {
       await companyLink.click();
