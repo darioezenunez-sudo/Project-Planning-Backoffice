@@ -8,15 +8,15 @@ let _redis: Redis | null = null;
  * Returns an Upstash Redis client when env vars are configured,
  * or null to fall back to stub behaviour (dev without Redis).
  *
- * Vercel + Upstash for Redis injects:
- *   UPSTASH_REDIS_REST_URL   — REST endpoint
- *   UPSTASH_REDIS_REST_TOKEN — bearer token
+ * Vercel + Upstash for Redis (prefix "UPSTASH_REDIS_REST") injects:
+ *   UPSTASH_REDIS_REST_KV_REST_API_URL   — REST endpoint
+ *   UPSTASH_REDIS_REST_KV_REST_API_TOKEN — bearer token
  */
 function getClient(): Redis | null {
   if (_redis) return _redis;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
 
   if (!url || !token) return null;
 
