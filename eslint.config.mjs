@@ -88,6 +88,9 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
+      // Tests use async/await freely; vitest it() callbacks are sometimes async
+      // without an explicit await when awaiting is done inside helpers.
+      '@typescript-eslint/require-await': 'off',
       'max-lines-per-function': 'off',
     },
   },
@@ -117,7 +120,8 @@ export default tseslint.config(
       'coverage/',
       'playwright-report/',
       'test-results/',
-      'prisma/migrations/',
+      'prisma/',
+      'scripts/',
       '.vercel/',
     ],
   }
