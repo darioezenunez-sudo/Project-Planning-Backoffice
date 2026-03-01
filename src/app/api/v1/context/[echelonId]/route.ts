@@ -42,7 +42,7 @@ export const GET = compose(
   withErrorHandling,
   withAuth,
   withTenant,
-  withRateLimit({ limit: 10, window: '5min' }),
+  withRateLimit({ limit: 10, window: '5m' }),
 )(async (_req: NextRequest, context: RouteContext) => {
   const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();

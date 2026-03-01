@@ -25,7 +25,7 @@ async function resolveMachineId(context: RouteContext): Promise<string> {
 // GET /api/v1/auth/devices/[machineId] — Device validation (Assistant). Rate limit: 10 req/5min per machineId.
 export const GET = compose(
   withErrorHandling,
-  withRateLimit({ limit: 10, window: '5min' }),
+  withRateLimit({ limit: 10, window: '5m' }),
 )(async (req: NextRequest, context: RouteContext) => {
   const machineId = await resolveMachineId(context);
 
