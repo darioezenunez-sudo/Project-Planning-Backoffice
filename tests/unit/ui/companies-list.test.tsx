@@ -9,6 +9,12 @@ import { AllProviders } from './test-utils';
 const mockUseCompanies = vi.fn();
 vi.mock('@/hooks/use-companies', () => ({
   useCompanies: (params: unknown) => mockUseCompanies(params) as unknown,
+  useCreateCompany: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 function renderCompaniesList() {
