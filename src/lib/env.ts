@@ -9,8 +9,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   DIRECT_URL: z.string().url().optional(),
   VERCEL_URL: z.string().optional(),
-  KV_REST_API_URL: z.string().url().optional(),
-  KV_REST_API_TOKEN: z.string().optional(),
+  // Upstash for Redis (Vercel Marketplace) — injected automatically when store is linked
+  // Prefix "UPSTASH_REDIS_REST" was applied on top of Vercel's KV naming convention
+  UPSTASH_REDIS_REST_KV_REST_API_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_KV_REST_API_TOKEN: z.string().optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   SENTRY_DSN: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
@@ -18,6 +20,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   JWT_SECRET: z.string().min(32).optional(),
   ENCRYPTION_KEY: z.string().min(32).optional(),
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -29,8 +32,8 @@ const parsed = envSchema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
   DIRECT_URL: process.env.DIRECT_URL,
   VERCEL_URL: process.env.VERCEL_URL,
-  KV_REST_API_URL: process.env.KV_REST_API_URL,
-  KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
+  UPSTASH_REDIS_REST_KV_REST_API_URL: process.env.UPSTASH_REDIS_REST_KV_REST_API_URL,
+  UPSTASH_REDIS_REST_KV_REST_API_TOKEN: process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   SENTRY_DSN: process.env.SENTRY_DSN,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -38,6 +41,7 @@ const parsed = envSchema.safeParse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  CRON_SECRET: process.env.CRON_SECRET,
 });
 
 if (!parsed.success) {
