@@ -1,19 +1,22 @@
 import { Redis } from '@upstash/redis';
 
-import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
 let _redis: Redis | null = null;
 
 /**
- * Returns a Redis client when KV env vars are configured,
- * or null to fall back to stub behaviour (dev without Vercel KV).
+ * Returns an Upstash Redis client when env vars are configured,
+ * or null to fall back to stub behaviour (dev without Redis).
+ *
+ * Vercel + Upstash for Redis injects:
+ *   UPSTASH_REDIS_REST_URL   — REST endpoint
+ *   UPSTASH_REDIS_REST_TOKEN — bearer token
  */
 function getClient(): Redis | null {
   if (_redis) return _redis;
 
-  const url = env.KV_REST_API_URL;
-  const token = env.KV_REST_API_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) return null;
 
