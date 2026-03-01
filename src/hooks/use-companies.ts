@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { Company, ListCompaniesQuery } from '@/schemas/company.schema';
+import type { Company, CreateCompanyInput, ListCompaniesQuery } from '@/schemas/company.schema';
 import type { PaginationMeta } from '@/schemas/shared.schema';
 
 import { useTenant } from './use-tenant';
@@ -52,5 +52,28 @@ export function useCompany(id: string | null) {
       return json.data;
     },
     enabled: !!organizationId && id != null && id.length > 0,
+  });
+}
+
+export function useCreateCompany() {
+  const { organizationId } = useTenant();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateCompanyInput) => {
+      const res = await fetch('/api/v1/companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Organization-Id': organizationId ?? '',
+        },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const json = (await res.json()) as { data: Company };
+      return json.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: companiesKeys.lists() });
+    },
   });
 }
