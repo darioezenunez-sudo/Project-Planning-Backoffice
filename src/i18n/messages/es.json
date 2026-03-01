@@ -58,6 +58,13 @@
     "empty": "Producto no encontrado."
   },
   "echelons": {
+    "title": "Echelons",
+    "searchPlaceholder": "Buscar echelon...",
+    "colName": "Nombre",
+    "colState": "Estado",
+    "colProduct": "Producto",
+    "colCreated": "Creado",
+    "listEmpty": "No hay echelons creados.",
     "detail": "Detalle de echelon",
     "sessions": "Sesiones",
     "empty": "Echelon no encontrado."

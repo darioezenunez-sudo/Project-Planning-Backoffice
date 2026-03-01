@@ -4,23 +4,18 @@
  *
  * Run: pnpm exec prisma db seed
  *
- * NOTE: User IDs must match Supabase auth.users IDs.
- * For local dev with Supabase local, create users via the Supabase dashboard first,
- * then update the IDs below.
+ * Users are created in both Supabase Auth (admin API) and the Prisma users table
+ * so that login works immediately after seeding.
+ *
+ * Default dev password for all seeded users: Test1234!
  */
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { EchelonState, PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ─── Stable seed IDs ──────────────────────────────────────────────────────────
-// Using fixed UUIDs so seeding is idempotent (upsert).
-
+// ─── Stable seed IDs (non-user entities) ─────────────────────────────────────
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
-const USER_SUPER_ID = '00000000-0000-0000-0001-000000000001';
-const USER_ADMIN_ID = '00000000-0000-0000-0001-000000000002';
-const USER_MANAGER_ID = '00000000-0000-0000-0001-000000000003';
-const USER_MEMBER_ID = '00000000-0000-0000-0001-000000000004';
-const USER_VIEWER_ID = '00000000-0000-0000-0001-000000000005';
 const COMPANY_A_ID = '00000000-0000-0000-0002-000000000001';
 const COMPANY_B_ID = '00000000-0000-0000-0002-000000000002';
 const PRODUCT_1_ID = '00000000-0000-0000-0003-000000000001';
@@ -29,61 +24,98 @@ const PRODUCT_3_ID = '00000000-0000-0000-0003-000000000003';
 const ECHELON_1_ID = '00000000-0000-0000-0004-000000000001';
 const ECHELON_2_ID = '00000000-0000-0000-0004-000000000002';
 
+const DEV_PASSWORD = 'Test1234!';
+
+const SEED_USERS = [
+  { email: 'super@acme.dev', name: 'Super Admin', role: Role.SUPER_ADMIN },
+  { email: 'admin@acme.dev', name: 'Org Admin', role: Role.ADMIN },
+  { email: 'manager@acme.dev', name: 'Project Manager', role: Role.MANAGER },
+  { email: 'member@acme.dev', name: 'Team Member', role: Role.MEMBER },
+  { email: 'viewer@acme.dev', name: 'Stakeholder', role: Role.VIEWER },
+];
+
+/**
+ * Creates or retrieves a Supabase Auth user.
+ * Returns the Supabase user UUID.
+ */
+async function upsertAuthUser(
+  supabase: SupabaseClient,
+  email: string,
+  name: string,
+): Promise<string> {
+  const { data: created, error } = await supabase.auth.admin.createUser({
+    email,
+    password: DEV_PASSWORD,
+    email_confirm: true,
+    user_metadata: { name },
+  });
+
+  if (!error) {
+    return created.user.id;
+  }
+
+  // User already exists — look it up by email
+  if (error.message.toLowerCase().includes('already')) {
+    const { data: list } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    const existing = list.users.find((u: { email?: string }) => u.email === email);
+    if (existing) return existing.id;
+  }
+
+  const msg = error.message;
+  throw new Error(`Failed to upsert auth user ${email}: ${msg}`);
+}
+
 async function main() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment.\n' +
+        'Make sure your .env.local is configured correctly.',
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
   console.log('🌱 Seeding database...');
 
   // ── Organization ──────────────────────────────────────────────────────────
   const org = await prisma.organization.upsert({
     where: { id: ORG_ID },
     update: {},
-    create: {
-      id: ORG_ID,
-      name: 'Acme Consulting',
-      slug: 'acme-consulting',
-    },
+    create: { id: ORG_ID, name: 'Acme Consulting', slug: 'acme-consulting' },
   });
   console.log(`  ✓ Organization: ${org.name}`);
 
-  // ── Users (mirrors of Supabase auth.users) ────────────────────────────────
-  const users = [
-    { id: USER_SUPER_ID, email: 'super@acme.dev', name: 'Super Admin' },
-    { id: USER_ADMIN_ID, email: 'admin@acme.dev', name: 'Org Admin' },
-    { id: USER_MANAGER_ID, email: 'manager@acme.dev', name: 'Project Manager' },
-    { id: USER_MEMBER_ID, email: 'member@acme.dev', name: 'Team Member' },
-    { id: USER_VIEWER_ID, email: 'viewer@acme.dev', name: 'Stakeholder' },
-  ];
+  // ── Supabase Auth users + Prisma users ────────────────────────────────────
+  // IDs come from Supabase Auth (not hardcoded) so login works immediately.
+  const userIds: Record<string, string> = {};
 
-  for (const user of users) {
+  for (const u of SEED_USERS) {
+    const authId = await upsertAuthUser(supabase, u.email, u.name);
     await prisma.user.upsert({
-      where: { id: user.id },
-      update: {},
-      create: user,
+      where: { email: u.email },
+      update: { id: authId, name: u.name },
+      create: { id: authId, email: u.email, name: u.name },
     });
+    userIds[u.email] = authId;
   }
-  console.log(`  ✓ ${users.length} users`);
+  console.log(`  ✓ ${String(SEED_USERS.length)} users (Supabase Auth + Prisma)`);
 
   // ── Memberships ───────────────────────────────────────────────────────────
-  const memberships: Array<{ userId: string; role: Role }> = [
-    { userId: USER_SUPER_ID, role: Role.SUPER_ADMIN },
-    { userId: USER_ADMIN_ID, role: Role.ADMIN },
-    { userId: USER_MANAGER_ID, role: Role.MANAGER },
-    { userId: USER_MEMBER_ID, role: Role.MEMBER },
-    { userId: USER_VIEWER_ID, role: Role.VIEWER },
-  ];
-
-  for (const m of memberships) {
+  for (const u of SEED_USERS) {
+    const userId = userIds[u.email];
+    if (!userId) continue;
     await prisma.organizationMember.upsert({
-      where: { organizationId_userId: { organizationId: ORG_ID, userId: m.userId } },
+      where: { organizationId_userId: { organizationId: ORG_ID, userId } },
       update: {},
-      create: {
-        organizationId: ORG_ID,
-        userId: m.userId,
-        role: m.role,
-        joinedAt: new Date(),
-      },
+      create: { organizationId: ORG_ID, userId, role: u.role, joinedAt: new Date() },
     });
   }
-  console.log(`  ✓ ${memberships.length} memberships`);
+  console.log(`  ✓ ${String(SEED_USERS.length)} memberships`);
 
   // ── Companies ─────────────────────────────────────────────────────────────
   const companyA = await prisma.company.upsert({
@@ -137,14 +169,10 @@ async function main() {
     },
   ];
 
-  for (const product of products) {
-    await prisma.product.upsert({
-      where: { id: product.id },
-      update: {},
-      create: product,
-    });
+  for (const p of products) {
+    await prisma.product.upsert({ where: { id: p.id }, update: {}, create: p });
   }
-  console.log(`  ✓ ${products.length} products`);
+  console.log(`  ✓ ${String(products.length)} products`);
 
   // ── Echelons ──────────────────────────────────────────────────────────────
   const echelon1 = await prisma.echelon.upsert({
@@ -209,11 +237,16 @@ async function main() {
   await prisma.healthCheck.create({ data: {} });
 
   console.log('\n✅ Seed complete!');
+  console.log('\n📋 Credenciales de acceso:');
+  console.log('   Password para todos: Test1234!');
+  for (const u of SEED_USERS) {
+    console.log(`   ${u.role.padEnd(12)} → ${u.email}`);
+  }
 }
 
 main()
   .then(() => prisma.$disconnect())
-  .catch((e) => {
+  .catch((e: unknown) => {
     console.error('Seed failed:', e);
     void prisma.$disconnect();
     process.exit(1);

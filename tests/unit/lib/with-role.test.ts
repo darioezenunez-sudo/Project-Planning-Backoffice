@@ -1,6 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { NextRequest, NextResponse } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { hasMinimumRole, ROLE_HIERARCHY } from '@/lib/middleware/with-role';
+vi.mock('@/lib/logger', () => ({
+  logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock('pino', () => ({
+  default: () => ({
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  }),
+}));
+
+import { hasMinimumRole, ROLE_HIERARCHY, withRole } from '@/lib/middleware/with-role';
+import { runWithContext } from '@/lib/request-context';
+
+const ctx = { params: Promise.resolve({}) };
+function makeReq(): NextRequest {
+  return new NextRequest('http://localhost/api/test');
+}
 
 describe('ROLE_HIERARCHY', () => {
   it('VIEWER has the lowest rank', () => {
@@ -77,5 +98,66 @@ describe('hasMinimumRole', () => {
 
   it('VIEWER fails SUPER_ADMIN requirement', () => {
     expect(hasMinimumRole('VIEWER', 'SUPER_ADMIN')).toBe(false);
+  });
+});
+
+describe('withRole middleware', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns 401 when there is no role in the request context', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const wrapped = withRole('MEMBER')(handler);
+    // Call WITHOUT runWithContext → getRequestContext() returns undefined
+    const res = await wrapped(makeReq(), ctx);
+    expect(res.status).toBe(401);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when the user role is below the required minimum', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const wrapped = withRole('ADMIN')(handler);
+    const res = await runWithContext(
+      { requestId: 'req-1', userId: 'u1', organizationId: 'org-1', role: 'MEMBER' },
+      () => wrapped(makeReq(), ctx),
+    );
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe('FORBIDDEN');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('calls the handler when the user role exactly meets the minimum', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const wrapped = withRole('MANAGER')(handler);
+    const res = await runWithContext(
+      { requestId: 'req-2', userId: 'u1', organizationId: 'org-1', role: 'MANAGER' },
+      () => wrapped(makeReq(), ctx),
+    );
+    expect(res.status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('calls the handler when the user role exceeds the minimum', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const wrapped = withRole('MEMBER')(handler);
+    const res = await runWithContext(
+      { requestId: 'req-3', userId: 'u1', organizationId: 'org-1', role: 'SUPER_ADMIN' },
+      () => wrapped(makeReq(), ctx),
+    );
+    expect(res.status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('passes VIEWER with VIEWER requirement', async () => {
+    const handler = vi.fn(() => NextResponse.json({ ok: true }));
+    const wrapped = withRole('VIEWER')(handler);
+    const res = await runWithContext(
+      { requestId: 'req-4', userId: 'u1', organizationId: 'org-1', role: 'VIEWER' },
+      () => wrapped(makeReq(), ctx),
+    );
+    expect(res.status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
   });
 });

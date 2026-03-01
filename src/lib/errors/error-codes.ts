@@ -10,6 +10,7 @@ export const ErrorCode = {
   ECHELON_INVALID_TRANSITION: 'ECHELON_INVALID_TRANSITION',
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
+  RATE_LIMITED: 'RATE_LIMITED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
