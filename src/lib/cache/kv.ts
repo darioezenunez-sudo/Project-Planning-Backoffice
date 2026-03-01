@@ -20,8 +20,13 @@ function getClient(): Redis | null {
 
   if (!url || !token) return null;
 
-  _redis = new Redis({ url, token });
-  return _redis;
+  try {
+    _redis = new Redis({ url, token });
+    return _redis;
+  } catch (err) {
+    logger.warn({ err }, 'kv: failed to create Redis client');
+    return null;
+  }
 }
 
 export async function kvGet<T>(key: string): Promise<T | null> {

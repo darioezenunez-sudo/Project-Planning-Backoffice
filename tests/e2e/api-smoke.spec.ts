@@ -332,6 +332,11 @@ test.describe('API Smoke', () => {
     const res = await request.get(`/api/v1/context/${openEchelon.id}`, {
       headers: orgHeaders(orgId),
     });
+    // Log response body on unexpected status to aid debugging
+    if (![200, 404].includes(res.status())) {
+      const body = await res.text();
+      console.error(`[context-bundle] unexpected status ${res.status().toString()}: ${body}`);
+    }
     // 200 con datos, o 404 si el echelon no tiene summaries suficientes
     expect([200, 404]).toContain(res.status());
   });
