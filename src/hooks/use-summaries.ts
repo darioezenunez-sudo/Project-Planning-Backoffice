@@ -23,7 +23,6 @@ export function useSummaryBySession(sessionId: string | null) {
       const json = (await res.json()) as { data: SummaryResponse };
       return json.data;
     },
-    staleTime: 5_000,
     enabled: !!organizationId && sessionId != null && sessionId.length > 0,
   });
 }
