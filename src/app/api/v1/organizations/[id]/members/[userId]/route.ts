@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { invalidateTenantMemberCache } from '@/lib/cache/tenant-cache';
 import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
 import { withAudit } from '@/lib/middleware/with-audit';
@@ -44,6 +45,8 @@ export const PATCH = compose(
   const result = await service.updateRole(orgId, userId, input.role);
   if (!result.ok) throw result.error;
 
+  await invalidateTenantMemberCache(userId, orgId);
+
   return apiSuccess(result.value);
 });
 
@@ -62,6 +65,8 @@ export const DELETE = compose(
 
   const result = await service.remove(orgId, userId);
   if (!result.ok) throw result.error;
+
+  await invalidateTenantMemberCache(userId, orgId);
 
   return apiSuccess(null, {}, 204);
 });
