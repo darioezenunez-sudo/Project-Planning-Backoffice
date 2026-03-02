@@ -1,5 +1,7 @@
+import type { Role } from '@prisma/client';
 import type { NextResponse } from 'next/server';
 
+import { getTenantMemberFromCache, setTenantMemberCache } from '../cache/tenant-cache';
 import { AppError } from '../errors/app-error';
 import { ErrorCode } from '../errors/error-codes';
 import { handleError } from '../errors/error-handler';
@@ -47,7 +49,13 @@ export const withTenant: Middleware = (handler: RouteHandler) => {
     }
 
     try {
-      // Look up the membership; the soft-delete extension automatically adds deletedAt: null.
+      const cached = await getTenantMemberFromCache(ctx.userId, organizationId);
+      if (cached) {
+        return await runWithContext({ ...ctx, organizationId, role: cached.role as Role }, () =>
+          handler(req, context),
+        );
+      }
+
       const member = await prisma.organizationMember.findFirst({
         where: { organizationId, userId: ctx.userId },
         select: { role: true },
@@ -68,6 +76,8 @@ export const withTenant: Middleware = (handler: RouteHandler) => {
         );
         return handleError(appError, requestId);
       }
+
+      await setTenantMemberCache(ctx.userId, organizationId, member.role);
 
       return await runWithContext({ ...ctx, organizationId, role: member.role }, () =>
         handler(req, context),

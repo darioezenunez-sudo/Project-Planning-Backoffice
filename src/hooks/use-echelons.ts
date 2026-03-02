@@ -54,7 +54,6 @@ export function useEchelon(id: string | null) {
       const json = (await res.json()) as { data: EchelonResponse };
       return json.data;
     },
-    staleTime: 5_000,
     enabled: !!organizationId && id != null && id.length > 0,
   });
 }
@@ -70,7 +69,6 @@ export function useEchelonSessions(echelonId: string | null) {
       if (!res.ok) throw new Error(await res.text());
       return res.json() as Promise<{ data: unknown[] }>;
     },
-    staleTime: 5_000,
     enabled: !!organizationId && echelonId != null && echelonId.length > 0,
   });
 }

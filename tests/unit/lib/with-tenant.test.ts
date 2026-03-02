@@ -16,6 +16,11 @@ vi.mock('pino', () => ({
   }),
 }));
 
+vi.mock('@/lib/cache/tenant-cache', () => ({
+  getTenantMemberFromCache: vi.fn(),
+  setTenantMemberCache: vi.fn(),
+}));
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     organizationMember: {
@@ -24,10 +29,13 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
+import { getTenantMemberFromCache, setTenantMemberCache } from '@/lib/cache/tenant-cache';
 import { prisma } from '@/lib/prisma';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { runWithContext } from '@/lib/request-context';
 
+const mockGetTenantMemberFromCache = vi.mocked(getTenantMemberFromCache);
+const mockSetTenantMemberCache = vi.mocked(setTenantMemberCache);
 const mockFindFirst = vi.mocked(prisma.organizationMember.findFirst);
 
 const ORG_ID = 'org-11111111-1111-1111-1111-111111111111';
@@ -43,6 +51,7 @@ function makeReq(orgId?: string): NextRequest {
 describe('withTenant', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetTenantMemberFromCache.mockResolvedValue(null); // default: cache miss
   });
 
   it('returns 401 when there is no userId in the request context', async () => {
@@ -102,6 +111,7 @@ describe('withTenant', () => {
   });
 
   it('returns 500 when Prisma throws', async () => {
+    mockGetTenantMemberFromCache.mockResolvedValue(null);
     mockFindFirst.mockRejectedValue(new Error('DB connection lost'));
     const handler = vi.fn(() => NextResponse.json({ ok: true }));
     const wrapped = withTenant(handler);
@@ -110,5 +120,71 @@ describe('withTenant', () => {
     );
     expect(res.status).toBe(500);
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  describe('tenant cache', () => {
+    it('cache hit → prisma.organizationMember.findFirst is NOT called', async () => {
+      mockGetTenantMemberFromCache.mockResolvedValue({ role: 'ADMIN' });
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withTenant(handler);
+      const res = await runWithContext({ requestId: 'req-c1', userId: USER_ID }, () =>
+        wrapped(makeReq(ORG_ID), ctx),
+      );
+      expect(res.status).toBe(200);
+      expect(handler).toHaveBeenCalledOnce();
+      expect(mockFindFirst).not.toHaveBeenCalled();
+      expect(mockSetTenantMemberCache).not.toHaveBeenCalled();
+    });
+
+    it('cache miss → findFirst is called and result is stored in cache', async () => {
+      mockGetTenantMemberFromCache.mockResolvedValue(null);
+      mockFindFirst.mockResolvedValue({
+        id: 'mbr-2',
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        role: 'MANAGER' as Role,
+        invitedAt: null,
+        joinedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+        version: 1,
+      });
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withTenant(handler);
+      const res = await runWithContext({ requestId: 'req-c2', userId: USER_ID }, () =>
+        wrapped(makeReq(ORG_ID), ctx),
+      );
+      expect(res.status).toBe(200);
+      expect(mockFindFirst).toHaveBeenCalledWith({
+        where: { organizationId: ORG_ID, userId: USER_ID },
+        select: { role: true },
+      });
+      expect(mockSetTenantMemberCache).toHaveBeenCalledWith(USER_ID, ORG_ID, 'MANAGER');
+    });
+
+    it('kvGet returns null (cache unavailable) → fallback to DB without error', async () => {
+      mockGetTenantMemberFromCache.mockResolvedValue(null);
+      mockFindFirst.mockResolvedValue({
+        id: 'mbr-3',
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        role: 'MEMBER' as Role,
+        invitedAt: null,
+        joinedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+        version: 1,
+      });
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withTenant(handler);
+      const res = await runWithContext({ requestId: 'req-c3', userId: USER_ID }, () =>
+        wrapped(makeReq(ORG_ID), ctx),
+      );
+      expect(res.status).toBe(200);
+      expect(mockFindFirst).toHaveBeenCalledOnce();
+      expect(mockSetTenantMemberCache).toHaveBeenCalledWith(USER_ID, ORG_ID, 'MEMBER');
+    });
   });
 });

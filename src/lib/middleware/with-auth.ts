@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import type { NextRequest, NextResponse } from 'next/server';
 
+import { getUserIdFromAuthCache, setAuthCache } from '../cache/auth-cache';
 import { AppError } from '../errors/app-error';
 import { ErrorCode } from '../errors/error-codes';
 import { handleError } from '../errors/error-handler';
@@ -62,6 +63,9 @@ async function resolveUserId(req: NextRequest, requestId: string): Promise<strin
 }
 
 async function resolveFromBearer(token: string, requestId: string): Promise<string | undefined> {
+  const cached = await getUserIdFromAuthCache(token);
+  if (cached) return cached;
+
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
@@ -74,6 +78,8 @@ async function resolveFromBearer(token: string, requestId: string): Promise<stri
     );
     return undefined;
   }
+
+  await setAuthCache(token, user.id);
   return user.id;
 }
 

@@ -17,6 +17,14 @@ vi.mock('pino', () => ({
 
 // vi.hoisted ensures these fn refs are created before vi.mock factories run
 const mockGetUser = vi.hoisted(() => vi.fn());
+const mockGetUserIdFromAuthCache = vi.hoisted(() => vi.fn());
+const mockSetAuthCache = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/cache/auth-cache', () => ({
+  getUserIdFromAuthCache: (token: string) =>
+    mockGetUserIdFromAuthCache(token) as Promise<string | null>,
+  setAuthCache: (token: string, userId: string) => mockSetAuthCache(token, userId) as Promise<void>,
+}));
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(() => ({
@@ -44,6 +52,7 @@ function makeReq(bearer?: string): NextRequest {
 describe('withAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetUserIdFromAuthCache.mockResolvedValue(null); // default: cache miss for Bearer tests
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
@@ -106,5 +115,45 @@ describe('withAuth', () => {
     const { createServerClient } = await import('@supabase/ssr');
 
     expect(vi.mocked(createServerClient)).not.toHaveBeenCalled();
+  });
+
+  describe('Bearer auth cache', () => {
+    it('cache hit → supabase.auth.getUser is NOT called', async () => {
+      mockGetUserIdFromAuthCache.mockResolvedValue(USER_ID);
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withAuth(handler);
+      const res = await wrapped(makeReq('valid-token'), ctx);
+      expect(res.status).toBe(200);
+      expect(handler).toHaveBeenCalledOnce();
+      expect(mockGetUser).not.toHaveBeenCalled();
+    });
+
+    it('cache miss → getUser is called and result is stored in cache', async () => {
+      mockGetUserIdFromAuthCache.mockResolvedValue(null);
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: USER_ID } },
+        error: null,
+      });
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withAuth(handler);
+      const res = await wrapped(makeReq('new-token'), ctx);
+      expect(res.status).toBe(200);
+      expect(mockGetUser).toHaveBeenCalledWith('new-token');
+      expect(mockSetAuthCache).toHaveBeenCalledWith('new-token', USER_ID);
+    });
+
+    it('kvGet returns null (cache unavailable) → fallback to Supabase without error', async () => {
+      mockGetUserIdFromAuthCache.mockResolvedValue(null);
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: USER_ID } },
+        error: null,
+      });
+      const handler = vi.fn(() => NextResponse.json({ ok: true }));
+      const wrapped = withAuth(handler);
+      const res = await wrapped(makeReq('token'), ctx);
+      expect(res.status).toBe(200);
+      expect(mockGetUser).toHaveBeenCalledWith('token');
+      expect(mockSetAuthCache).toHaveBeenCalledWith('token', USER_ID);
+    });
   });
 });
