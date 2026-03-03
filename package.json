@@ -35,6 +35,7 @@
     "db:cleanup": "tsx scripts/db-cleanup.ts",
     "db:vacuum": "tsx scripts/db-vacuum.ts",
     "db:backup": "tsx scripts/db-backup.ts",
+    "load-test": "k6 run scripts/load-test.js",
     "prepare": "husky",
     "validate": "pnpm run lint && pnpm run type-check && pnpm run test:run"
   },

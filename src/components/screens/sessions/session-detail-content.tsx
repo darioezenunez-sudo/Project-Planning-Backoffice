@@ -4,17 +4,19 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bot, CheckCircle } from 'lucide-react';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { useEchelon } from '@/hooks/use-echelons';
 import { useSession } from '@/hooks/use-sessions';
 import { useSummaryBySession, useUpdateSummary } from '@/hooks/use-summaries';
+import { SUMMARY_STATE_BADGE_CLASS } from '@/lib/constants/state-badges';
 
 type SummaryData = {
   id?: string;
@@ -26,13 +28,7 @@ type SummaryData = {
   [key: string]: unknown;
 };
 
-const stateBadgeClass: Record<string, string> = {
-  DRAFT: 'bg-zinc-400/10 text-zinc-400 border-zinc-400/20',
-  REVIEW: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
-  EDITED: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
-  VALIDATED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-};
-
+/* eslint-disable complexity -- screen with session, summary, editor states */
 export function SessionDetailContent({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId);
   const summary = useSummaryBySession(sessionId);
@@ -59,7 +55,9 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
       {
         onSuccess: () => {
           setSaved(true);
+          toast.success('Resumen guardado');
         },
+        onError: (err) => toast.error(err.message),
       },
     );
   };
@@ -89,7 +87,7 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
     <div className="flex flex-col gap-6 lg:flex-row lg:gap-6">
       <div className="flex flex-col gap-4 lg:flex-[0.65]">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Summary — Sesión #{sessionNum}</h1>
+          <h1 className="page-title">Summary — Sesión #{sessionNum}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {sessionDate} · {echelonName}
           </p>
@@ -150,14 +148,14 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
                 )}
               </CardHeader>
               <CardContent className="pt-4">
-                <Textarea
-                  className="min-h-[300px] resize-y text-sm leading-relaxed"
+                <RichTextEditor
                   value={editContent}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                    setEditContent(e.target.value);
+                  onChange={(html) => {
+                    setEditContent(html);
                     setSaved(false);
                   }}
                   placeholder="Escribí o pegá el resumen aquí..."
+                  minHeight="300px"
                 />
                 <p className="mt-2 text-right text-xs text-muted-foreground">
                   {editContent.length} caracteres
@@ -189,7 +187,7 @@ export function SessionDetailContent({ sessionId }: { sessionId: string }) {
             {summaryData?.state != null && (
               <Badge
                 variant="outline"
-                className={`px-3 py-1 text-sm ${stateBadgeClass[summaryData.state] ?? ''}`}
+                className={`px-3 py-1 text-sm ${SUMMARY_STATE_BADGE_CLASS[summaryData.state] ?? ''}`}
               >
                 {summaryData.state}
               </Badge>

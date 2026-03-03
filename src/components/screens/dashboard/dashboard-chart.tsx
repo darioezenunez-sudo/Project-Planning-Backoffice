@@ -71,7 +71,7 @@ export function DashboardChart() {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-medium">{t('tokenUsage')}</h3>
+        <h3 className="section-title">{t('tokenUsage')}</h3>
         <p className="text-xs text-muted-foreground">{t('tokensThousands')}</p>
       </CardHeader>
       <CardContent>

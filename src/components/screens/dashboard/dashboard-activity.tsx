@@ -12,7 +12,7 @@ export function DashboardActivity() {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-medium">{t('recentActivity')}</h3>
+        <h3 className="section-title">{t('recentActivity')}</h3>
       </CardHeader>
       <CardContent>
         <EmptyState

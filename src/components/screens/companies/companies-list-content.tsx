@@ -2,10 +2,11 @@
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MoreHorizontal, Plus, Search } from 'lucide-react';
+import { MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 import { CompanyCreateDialog } from '@/components/shared/company-create-dialog';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -14,6 +15,13 @@ import { SkeletonTable } from '@/components/shared/skeleton-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -29,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCompanies } from '@/hooks/use-companies';
+import { useCompanies, useUpdateCompany, useDeleteCompany } from '@/hooks/use-companies';
 import type { Company } from '@/schemas/company.schema';
 
 export function CompaniesListContent() {
@@ -38,6 +47,19 @@ export function CompaniesListContent() {
   const [searchInput, setSearchInput] = React.useState('');
   const [search, setSearch] = React.useState('');
   const [openCreate, setOpenCreate] = React.useState(false);
+  const [editCompany, setEditCompany] = React.useState<Company | null>(null);
+  const [editName, setEditName] = React.useState('');
+  const [editIndustry, setEditIndustry] = React.useState('');
+  const [deleteCompany, setDeleteCompany] = React.useState<Company | null>(null);
+  const updateCompany = useUpdateCompany();
+  const deleteCompanyMutation = useDeleteCompany();
+
+  React.useEffect(() => {
+    if (editCompany) {
+      setEditName(editCompany.name);
+      setEditIndustry(editCompany.industry ?? '');
+    }
+  }, [editCompany]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -58,12 +80,104 @@ export function CompaniesListContent() {
     | { pagination?: { hasMore?: boolean; limit?: number } }
     | undefined;
 
+  const handleEditSubmit = () => {
+    if (!editCompany) return;
+    const name = editName.trim();
+    if (!name) return;
+    updateCompany.mutate(
+      {
+        id: editCompany.id,
+        name,
+        industry: editIndustry.trim() || undefined,
+        version: editCompany.version,
+      },
+      {
+        onSuccess: () => {
+          setEditCompany(null);
+          toast.success(t('updated'));
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteCompany) return;
+    deleteCompanyMutation.mutate(
+      { id: deleteCompany.id, version: deleteCompany.version },
+      {
+        onSuccess: () => {
+          setDeleteCompany(null);
+          toast.success(t('deleted'));
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  };
+
   return (
     <>
       <CompanyCreateDialog open={openCreate} onOpenChange={setOpenCreate} />
+      <Dialog open={editCompany != null} onOpenChange={(open) => !open && setEditCompany(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('editCompany')}</DialogTitle>
+          </DialogHeader>
+          {editCompany && (
+            <div className="grid gap-2 py-2">
+              <Label htmlFor="edit-company-name">{t('name')}</Label>
+              <Input
+                id="edit-company-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder={t('name')}
+              />
+              <Label htmlFor="edit-company-industry">{t('industry')}</Label>
+              <Input
+                id="edit-company-industry"
+                value={editIndustry}
+                onChange={(e) => setEditIndustry(e.target.value)}
+                placeholder={t('industry')}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCompany(null)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={updateCompany.isPending}>
+              {tCommon('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deleteCompany != null} onOpenChange={(open) => !open && setDeleteCompany(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('deleteCompany')}</DialogTitle>
+          </DialogHeader>
+          {deleteCompany && (
+            <p className="text-sm text-muted-foreground">
+              {t('deleteConfirm', { name: deleteCompany.name })}
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteCompany(null)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteCompanyMutation.isPending}
+            >
+              {t('delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <h1 className="page-title">{t('title')}</h1>
           <Button size="sm" onClick={() => setOpenCreate(true)}>
             <Plus className="mr-2 size-4" />
             {t('newCompany')}
@@ -105,6 +219,12 @@ export function CompaniesListContent() {
                   <EmptyState
                     title={t('empty')}
                     description="Creá la primera empresa para comenzar."
+                    action={
+                      <Button onClick={() => setOpenCreate(true)}>
+                        <Plus className="mr-2 size-4" />
+                        {t('newCompany')}
+                      </Button>
+                    }
                   />
                 </div>
               ) : (
@@ -150,9 +270,17 @@ export function CompaniesListContent() {
                                 <DropdownMenuItem asChild>
                                   <Link href={`/companies/${c.id}`}>Ver detalle</Link>
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setEditCompany(c)}>
+                                  <Pencil className="mr-2 size-4" />
+                                  {t('editCompany')}
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                  Eliminar
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeleteCompany(c)}
+                                >
+                                  <Trash2 className="mr-2 size-4" />
+                                  {t('delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

@@ -11,14 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEchelons } from '@/hooks/use-echelons';
-
-const stateBadgeClass: Record<string, string> = {
-  IN_PROGRESS: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  CLOSING: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  CLOSURE_REVIEW: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  CLOSED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  OPEN: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20',
-};
+import { ECHELON_STATE_BADGE_CLASS } from '@/lib/constants/state-badges';
 
 export function DashboardEchelonsList() {
   const tDashboard = useTranslations('dashboard');
@@ -65,7 +58,7 @@ export function DashboardEchelonsList() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <h3 className="text-lg font-medium">{tDashboard('activeEchelonsList')}</h3>
+        <h3 className="section-title">{tDashboard('activeEchelonsList')}</h3>
         <Button variant="ghost" size="sm" className="text-xs" asChild>
           <Link href="/echelons">{tCommon('seeAll')} →</Link>
         </Button>
@@ -83,7 +76,7 @@ export function DashboardEchelonsList() {
               >
                 <span className="min-w-0 truncate pr-2">{e.name ?? e.id}</span>
                 {e.state != null && (
-                  <Badge variant="outline" className={stateBadgeClass[e.state] ?? ''}>
+                  <Badge variant="outline" className={ECHELON_STATE_BADGE_CLASS[e.state] ?? ''}>
                     {e.state.replace('_', ' ')}
                   </Badge>
                 )}

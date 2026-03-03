@@ -36,17 +36,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEchelons } from '@/hooks/use-echelons';
+import { ECHELON_STATE_BADGE_CLASS } from '@/lib/constants/state-badges';
 import type { EchelonState } from '@/schemas/echelon.schema';
-
-// ─── Badge style per state ────────────────────────────────────────────────────
-
-const stateBadgeClass: Record<string, string> = {
-  OPEN: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20',
-  IN_PROGRESS: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  CLOSING: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  CLOSURE_REVIEW: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  CLOSED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-};
 
 const stateLabel: Record<string, string> = {
   OPEN: 'Abierto',
@@ -102,7 +93,7 @@ export function EchelonsListContent() {
     <div className="mx-auto max-w-6xl space-y-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="page-title">{t('title')}</h1>
       </div>
 
       {/* Filters */}
@@ -161,7 +152,12 @@ export function EchelonsListContent() {
               <div className="p-8">
                 <EmptyState
                   title={t('listEmpty')}
-                  description="Los echelons aparecerán aquí cuando sean creados desde la app."
+                  description="Creá un echelon desde un producto para comenzar."
+                  action={
+                    <Button asChild>
+                      <Link href="/companies">Ir a empresas</Link>
+                    </Button>
+                  }
                 />
               </div>
             ) : (
@@ -189,7 +185,10 @@ export function EchelonsListContent() {
                         </TableCell>
                         <TableCell>
                           {e.state != null && (
-                            <Badge variant="outline" className={stateBadgeClass[e.state] ?? ''}>
+                            <Badge
+                              variant="outline"
+                              className={ECHELON_STATE_BADGE_CLASS[e.state] ?? ''}
+                            >
                               {stateLabel[e.state] ?? e.state}
                             </Badge>
                           )}

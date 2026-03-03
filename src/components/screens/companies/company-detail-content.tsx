@@ -32,6 +32,7 @@ import { useCompany } from '@/hooks/use-companies';
 import { useProducts } from '@/hooks/use-products';
 import type { Product } from '@/schemas/product.schema';
 
+/* eslint-disable complexity -- screen component with many branches */
 function CompanyDetailInner({ companyId }: { companyId: string }) {
   const company = useCompany(companyId);
   const products = useProducts({ companyId, limit: 50 });
@@ -66,7 +67,7 @@ function CompanyDetailInner({ companyId }: { companyId: string }) {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">{c.name}</h1>
+            <h1 className="page-title">{c.name}</h1>
             {c.industry != null && c.industry !== '' && (
               <Badge variant="outline" className="text-sm">
                 {c.industry}

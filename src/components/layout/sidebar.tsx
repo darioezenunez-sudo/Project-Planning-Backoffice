@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Monitor,
   Settings,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -28,6 +29,7 @@ const iconMap: Record<NavItem['icon'], React.ComponentType<{ className?: string 
   Monitor,
   BarChart3,
   ClipboardList,
+  Users,
   Settings,
 };
 

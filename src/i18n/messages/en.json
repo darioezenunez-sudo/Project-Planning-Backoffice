@@ -8,15 +8,20 @@
     "close": "Close",
     "back": "Back",
     "empty": "No data",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "detail": "Detail"
   },
   "nav": {
     "dashboard": "Dashboard",
     "companies": "Companies",
+    "products": "Products",
     "echelons": "Echelons",
+    "sessions": "Sessions",
+    "consolidation": "Consolidation",
     "devices": "Devices",
     "budget": "Budget",
     "auditLog": "Audit log",
+    "members": "Members",
     "settings": "Settings"
   },
   "auth": {
@@ -26,7 +31,31 @@
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot your password?",
-    "noAccess": "You don't have access. Contact the administrator."
+    "noAccess": "You don't have access. Contact the administrator.",
+    "registerTitle": "Create account",
+    "registerDescription": "Fill in the form to register. If your email requires verification, we'll send you a link.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "e.g. Jane Doe",
+    "createAccount": "Create my account",
+    "creatingAccount": "Creating account...",
+    "checkEmailConfirm": "Check your email to confirm your account. Then log in.",
+    "alreadyHaveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "confirmPassword": "Confirm password"
+  },
+  "onboarding": {
+    "title": "Set up your account",
+    "description": "Create your first organization or join an existing one.",
+    "createOrg": "Create first organization",
+    "createOrgDescription": "Create an organization to start using the backoffice.",
+    "orgName": "Organization name",
+    "orgNamePlaceholder": "e.g. My Company",
+    "createAndContinue": "Create and continue",
+    "creating": "Creating...",
+    "joinExisting": "Join an existing one",
+    "joinExistingDescription": "If an admin invited you by email, click the link they sent to join the organization.",
+    "loading": "Loading...",
+    "backToDashboard": "Go to dashboard"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -51,7 +80,13 @@
     "products": "Products",
     "created": "Created",
     "empty": "No companies. Create the first one.",
-    "detail": "Company detail"
+    "detail": "Company detail",
+    "editCompany": "Edit company",
+    "deleteCompany": "Delete company",
+    "deleteConfirm": "Delete «{name}»? This action cannot be undone.",
+    "delete": "Delete",
+    "updated": "Company updated.",
+    "deleted": "Company deleted."
   },
   "products": {
     "detail": "Product detail",
@@ -80,14 +115,67 @@
   },
   "budget": {
     "title": "Budget",
-    "empty": "No usage records."
+    "empty": "No usage records.",
+    "chartTitle": "Usage by period",
+    "planificado": "Planned",
+    "ejecutado": "Used",
+    "alertOver100": "Usage over limit",
+    "alertOver80": "Usage near limit",
+    "noLimitConfigured": "No limit configured",
+    "period": "Period",
+    "tokens": "Tokens",
+    "line": "Line",
+    "breakdownByLine": "Breakdown by line"
   },
   "audit": {
     "title": "Audit Log",
     "empty": "No audit events."
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications.",
+    "loading": "Loading…",
+    "markAllRead": "Mark all as read",
+    "ariaLabel": "Notifications"
+  },
+  "members": {
+    "title": "Organization members",
+    "inviteMember": "Invite member",
+    "empty": "No members.",
+    "emptyDescription": "Only admins can invite new members.",
+    "member": "Member",
+    "email": "Email",
+    "role": "Role",
+    "actions": "Actions",
+    "changeRole": "Change role",
+    "remove": "Remove from organization",
+    "removeMember": "Remove member",
+    "removeConfirm": "Remove «{name}» from the organization? This action cannot be undone.",
+    "invited": "Invitation sent.",
+    "roleUpdated": "Role updated.",
+    "removed": "Member removed.",
+    "changeRoleFor": "Change role for {name}",
+    "roles": {
+      "VIEWER": "Viewer",
+      "MEMBER": "Member",
+      "MANAGER": "Manager",
+      "ADMIN": "Admin",
+      "SUPER_ADMIN": "Super Admin"
+    }
+  },
   "settings": {
     "title": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "email": "Email",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "saveProfile": "Save name",
+    "changePassword": "Change password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "savePassword": "Save password",
+    "profileSaved": "Profile updated.",
+    "passwordUpdated": "Password updated.",
+    "passwordMismatch": "Passwords do not match."
   }
 }

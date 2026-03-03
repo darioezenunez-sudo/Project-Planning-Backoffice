@@ -61,6 +61,18 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        /* Echelon & Summary FSM state colors (G2) */
+        state: {
+          open: 'hsl(var(--state-open))',
+          'in-progress': 'hsl(var(--state-in-progress))',
+          closing: 'hsl(var(--state-closing))',
+          'closure-review': 'hsl(var(--state-closure-review))',
+          closed: 'hsl(var(--state-closed))',
+          draft: 'hsl(var(--state-draft))',
+          review: 'hsl(var(--state-review))',
+          edited: 'hsl(var(--state-edited))',
+          validated: 'hsl(var(--state-validated))',
+        },
       },
     },
   },

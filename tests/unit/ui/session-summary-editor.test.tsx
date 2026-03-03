@@ -11,6 +11,26 @@ const mockUseSummaryBySession = vi.fn();
 const mockUseUpdateSummary = vi.fn();
 const mockUseEchelon = vi.fn();
 
+vi.mock('@/components/ui/rich-text-editor', () => ({
+  RichTextEditor: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 vi.mock('@/hooks/use-sessions', () => ({
   useSession: (id: string | null) => mockUseSession(id) as unknown,
 }));

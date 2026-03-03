@@ -193,6 +193,15 @@ When all required summaries are VALIDATED:
   → Echelon: IN_PROGRESS → CLOSING
 ```
 
+### GET /context/:echelonId — Ranked retrieval (H5)
+
+The Assistant (Electron app) can request the context bundle with an optional **query embedding** to get summaries ordered by similarity to the query (pgvector cosine distance):
+
+- **Without query param:** `GET /api/v1/context/:echelonId` — bundle built with default order (VALIDATED first, then by `createdAt`). Response is cached (KV key `ctx:{echelonId}`, TTL 5 min).
+- **With query param:** `GET /api/v1/context/:echelonId?queryEmbedding=<base64url>` — `queryEmbedding` is `base64url(JSON.stringify(number[768]))`. The API calls `findSummaryIdsBySimilarity()` and returns summaries in that order (nearest first). Cache is **not** used (result is query-dependent).
+
+Contract: `src/contracts/assistant-api.ts` — `CONTEXT_QUERY_EMBEDDING_DIMS = 768`, `contextQueryEmbeddingSchema`.
+
 ---
 
 ## 5. Database Design
@@ -393,3 +402,21 @@ Currently all hooks return static mock objects — connecting them to real endpo
 ### RLS
 
 Supabase RLS policies defined in `supabase/migrations/20260222000001_rls_policies.sql` — **not yet applied** to production. Browser client (`anon` key) will respect RLS once applied. Service-role client always bypasses.
+
+---
+
+## 11. Frontend Realtime (Supabase Postgres Changes)
+
+When multiple users work in the same organization, the UI can stay in sync without refresh by subscribing to Supabase Realtime **postgres_changes** for `echelons` and `sessions`.
+
+**Implementation:**
+
+- `src/hooks/use-realtime-invalidation.ts` — subscribes to `echelons` and `sessions` with filter `organization_id=eq.{orgId}`; on any event, invalidates the relevant TanStack Query keys so lists and details refetch.
+- `src/components/providers/realtime-provider.tsx` — mounts inside the dashboard layout and runs the subscription when `organizationId` is set.
+
+**Supabase Dashboard (required):**
+
+1. **Database** → **Replication** (or **Publications**).
+2. Under publication `supabase_realtime`, add tables **echelons** and **sessions** (or run `ALTER PUBLICATION supabase_realtime ADD TABLE echelons, sessions;`).
+
+RLS applies to Realtime: the anon key must have `SELECT` (and appropriate policies) on these tables for the subscription to receive events. If RLS blocks the subscription, no events are delivered.
