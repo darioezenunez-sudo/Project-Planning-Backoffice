@@ -24,7 +24,6 @@ export function useSession(id: string | null) {
       const json = (await res.json()) as { data: SessionResponse };
       return json.data;
     },
-    staleTime: 5_000,
     enabled: !!organizationId && id != null && id.length > 0,
   });
 }

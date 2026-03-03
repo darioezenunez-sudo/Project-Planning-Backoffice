@@ -1,8 +1,9 @@
 # CLAUDE.md — Project-Planning-Backoffice Context Primer
 
-> **Version:** 1.2.0 | **Updated:** 2026-03-01 | **Branch:** feat/fase-7
+> **Version:** 1.3.0 | **Updated:** 2026-03-02 | **Branch:** develop
 > This file is auto-loaded by Claude Code. A new developer or LLM reading this file has full context.
 > For deep technical reference → `docs/ARCHITECTURE.md` | Coding rules → `docs/ENGINEERING_STANDARDS.md`
+> Product backlog → `docs/BACKLOG.md` | Technical debt → `docs/TECHNICAL_DEBT.md` | Performance → `docs/PERFORMANCE.md`
 
 ---
 
@@ -68,7 +69,7 @@ DRAFT → REVIEW → EDITED → VALIDATED
 | i18n       | next-intl                                 | locales: es/en; defaultLocale: es; localePrefix: never      |
 | State      | Zustand (sidebar) + TanStack Query        |                                                             |
 | LLM        | Vercel AI SDK → OpenAI gpt-4o-mini        | 120K max input tokens                                       |
-| Testing    | Vitest v3 (unit) + Playwright v1.52 (E2E) | 317 unit tests; E2E 26/26 passing                           |
+| Testing    | Vitest v3 (unit) + Playwright v1.52 (E2E) | 334 unit tests; E2E 26/26 passing                           |
 | CI         | GitHub Actions                            | push/PR to main+develop                                     |
 | Monitoring | Sentry @sentry/nextjs                     | DSN configured; server + edge + client + global-error wired |
 
@@ -76,29 +77,43 @@ DRAFT → REVIEW → EDITED → VALIDATED
 
 ## 4. Phase Status
 
-| Phase  | Status      | Branch      | Unit Tests | Notes                                                  |
-| ------ | ----------- | ----------- | ---------- | ------------------------------------------------------ |
-| Fase 0 | ✅ COMPLETE | main        | 16         | Toolchain, env, base config                            |
-| Fase 1 | ✅ COMPLETE | main        | 97         | Org, Company, Product, User, Auth APIs                 |
-| Fase 2 | ✅ COMPLETE | main        | 173        | Echelon/Session/Summary FSMs + APIs                    |
-| Fase 3 | ⚠️ PARTIAL  | main        | +57        | Context bundle, pgvector, attachments                  |
-| Fase 4 | ⚠️ PARTIAL  | main        | +3         | AI consolidation, budget, devices                      |
-| Fase 5 | ✅ COMPLETE | main        | +E2E       | UI screens, hooks, auth, E2E 26/26                     |
-| Fase 6 | ✅ COMPLETE | main        | 259 total  | Infra hardening: RLS, KV cache, rate-limit, Sentry, DB |
-| Fase 7 | ✅ COMPLETE | feat/fase-7 | 317 total  | Test coverage ≥70%, bug fixes, lint migration (see §5) |
+| Phase  | Status      | Branch | Unit Tests | Notes                                                           |
+| ------ | ----------- | ------ | ---------- | --------------------------------------------------------------- |
+| Fase 0 | ✅ COMPLETE | main   | 16         | Toolchain, env, base config                                     |
+| Fase 1 | ✅ COMPLETE | main   | 97         | Org, Company, Product, User, Auth APIs                          |
+| Fase 2 | ✅ COMPLETE | main   | 173        | Echelon/Session/Summary FSMs + APIs                             |
+| Fase 3 | ⚠️ PARTIAL  | main   | +57        | Context bundle, pgvector, attachments                           |
+| Fase 4 | ⚠️ PARTIAL  | main   | +3         | AI consolidation, budget, devices                               |
+| Fase 5 | ✅ COMPLETE | main   | +E2E       | UI screens, hooks, auth, E2E 26/26                              |
+| Fase 6 | ✅ COMPLETE | main   | 259 total  | Infra hardening: RLS, KV cache, rate-limit, Sentry, DB          |
+| Fase 7 | ✅ COMPLETE | main   | 334 total  | Test coverage ≥70%, bug fixes, lint migration, perf cache layer |
 
-**Current branch:** `feat/fase-7`
+**Current branch:** `develop`
 
 ---
 
-## 5. Fase 7 — Completed (2026-03-01)
+## 5. Fase 7 — Completed (2026-03-01) + Post-Fase 7 Work (2026-03-02)
 
-### Completed ✅
+### Fase 7 Completed ✅
 
-- **B1 – Test coverage ≥70%:** Added 58 unit tests across 7 new test files (decision-link, member, with-tenant, with-validation, api-response, pagination, error-handler); reached 70.86% statement coverage; Vitest threshold enforced at 70%
-- **B2 – Rate-limit window fix:** Corrected `'5min'` → `'5m'` in `withRateLimit` calls in two route files (`context/[echelonId]/route.ts` and `auth/devices/[machineId]/route.ts`); `parseWindowMs` regex only accepts `s|m|h`
-- **B3 – Lint migration:** Replaced deprecated `next lint` with `eslint src/` CLI in `package.json` (both `lint` and `lint:fix`) and `.lintstagedrc.cjs`; added `@typescript-eslint/require-await: off` to test-file ESLint rules; added `prisma/` + `scripts/` to ESLint ignore list
+- **B1 – Test coverage ≥70%:** Added 58 unit tests across 7 new test files; reached 70.86% statement coverage; Vitest threshold enforced at 70%
+- **B2 – Rate-limit window fix:** Corrected `'5min'` → `'5m'` in `withRateLimit` calls in two route files
+- **B3 – Lint migration:** Replaced deprecated `next lint` with `eslint src/` CLI; added `@typescript-eslint/require-await: off` for test files
 - **B4 – E2E 26/26:** Context bundle E2E test updated to accept `[200, 404]`; all 26 smoke tests passing
+
+### Post-Fase 7 Performance Layer ✅ (on `develop`)
+
+- **Fase 1 – Bearer auth cache:** `src/lib/cache/auth-cache.ts` — SHA-256 hashed key, TTL 60s; `withAuth` cache-first
+- **Fase 1 – Tenant membership cache:** `src/lib/cache/tenant-cache.ts` — TTL 120s; `withTenant` cache-first
+- **Fase 1 – staleTime fix:** Removed `staleTime: 5_000` override in `use-echelons.ts` (inherits global 30s)
+- **Fase 2 – Partial indexes:** `prisma/migrations/20260302000001_add_partial_indexes_performance/` — 6 partial indexes `WHERE deleted_at IS NULL`
+- **`docs/PERFORMANCE.md`:** Full latency audit, optimization plan, migration status
+
+### Doc Reorganization ✅ (on `develop`, 2026-03-02)
+
+- **`docs/legacy/`:** 5 deprecated files moved (DEVELOPMENT_PLAN_MVP, ROADMAP, FASE5_SCREENS, Plan_fase_5_inicio, ENGINEERING_STANDARDS_LEGACY)
+- **`docs/TECHNICAL_DEBT.md`:** Condensed v2.0 — all Section B items marked ✅ Done (resolved in Fase 6/7)
+- **`docs/BACKLOG.md`:** Product backlog v1.0 — 8 phases, 30 issues identified post-Fase 7
 
 ### Infra (Fase 6 — merged to main) ✅
 
@@ -129,9 +144,21 @@ DRAFT → REVIEW → EDITED → VALIDATED
 ## 7. Key File Map
 
 ```
-CLAUDE.md                              ← YOU ARE HERE (context primer)
-docs/ARCHITECTURE.md                   ← API patterns, auth flows, DB design, caching
-docs/ENGINEERING_STANDARDS.md          ← Coding rules, patterns, naming conventions
+CLAUDE.md                              ← YOU ARE HERE (context primer, auto-loaded)
+
+docs/                                  ← Active documentation
+  ARCHITECTURE.md                      ← API patterns, auth flows, DB design, caching
+  ENGINEERING_STANDARDS.md            ← Coding rules, patterns, naming conventions
+  PERFORMANCE.md                       ← Latency audit, cache layers, DB index plan
+  TECHNICAL_DEBT.md                    ← Technical debt tracker (all B1-B7 resolved)
+  BACKLOG.md                           ← Product backlog: 8 phases, 30 issues post-Fase 7
+  resumen_ejecutivo_*.md               ← Executive summary v5.1 (system overview)
+  legacy/                              ← Deprecated docs (kept for history, do not edit)
+    DEVELOPMENT_PLAN_MVP.md            ← Original MVP plan (superseded by BACKLOG.md)
+    ROADMAP.md                         ← Original roadmap (superseded by §4 Phase Status)
+    ENGINEERING_STANDARDS_LEGACY.md   ← Old standards (superseded by docs/ENGINEERING_STANDARDS.md)
+    FASE5_SCREENS.md                   ← UI screen inventory (superseded by src/components/screens/)
+    Plan_fase_5_inicio.md              ← Fase 5 kickoff notes
 
 src/lib/
   env.ts                               ← Env var validation (Zod, optional in dev)
@@ -198,9 +225,16 @@ supabase/migrations/                   ← SQL migrations (RLS policies applied)
 
 ## 9. Known Technical Debt
 
-| Item                                 | File / Location         | Priority                                                               |
-| ------------------------------------ | ----------------------- | ---------------------------------------------------------------------- |
-| Sentry Vercel Integration (optional) | Vercel project settings | 🟢 LOW — dashboard-only; add `SENTRY_AUTH_TOKEN` for deploy sourcemaps |
+> Full backlog in `docs/BACKLOG.md`. Full debt tracker in `docs/TECHNICAL_DEBT.md`.
+
+| Item                                     | File / Location                             | Priority | Backlog     |
+| ---------------------------------------- | ------------------------------------------- | -------- | ----------- |
+| `staleTime: 5_000` bug in 2 hooks        | `use-sessions.ts:27`, `use-summaries.ts:26` | 🔴 HIGH  | Fase A — A1 |
+| FSM action bar missing in echelon detail | `echelon-detail-content.tsx:302`            | 🔴 HIGH  | Fase A — A3 |
+| 23+ `useMutation` hooks missing          | `src/hooks/`                                | 🟡 MED   | Fase B      |
+| Notifications bell (🔔) unimplemented    | `header.tsx`                                | 🟡 MED   | Fase D — D1 |
+| Dark/light mode toggle not in UI         | `header.tsx`                                | 🟡 MED   | Fase G — G1 |
+| Sentry Vercel Integration (sourcemaps)   | Vercel project settings                     | 🟢 LOW   | Fase H — H4 |
 
 ---
 
