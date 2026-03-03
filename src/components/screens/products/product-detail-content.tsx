@@ -5,26 +5,29 @@ import { es } from 'date-fns/locale';
 import { Building2, CalendarDays, ChevronRight, Clock, Layers, Plus } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCompany } from '@/hooks/use-companies';
-import { useEchelons } from '@/hooks/use-echelons';
+import { useCreateEchelon, useEchelons } from '@/hooks/use-echelons';
 import { useProduct } from '@/hooks/use-products';
+import { ECHELON_STATE_BADGE_CLASS } from '@/lib/constants/state-badges';
 import type { Product } from '@/schemas/product.schema';
-
-const stateBadgeClass: Record<string, string> = {
-  OPEN: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20',
-  IN_PROGRESS: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  CLOSED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  CLOSING: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  CLOSURE_REVIEW: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-};
 
 type EchelonRow = {
   id: string;
@@ -38,6 +41,25 @@ export function ProductDetailContent({ productId }: { productId: string }) {
   const product = useProduct(productId);
   const company = useCompany(product.data?.companyId ?? null);
   const echelons = useEchelons({ productId, limit: 50 });
+  const createEchelon = useCreateEchelon(productId);
+  const [newEchelonOpen, setNewEchelonOpen] = React.useState(false);
+  const [newEchelonName, setNewEchelonName] = React.useState('');
+
+  const handleCreateEchelon = React.useCallback(() => {
+    const name = newEchelonName.trim();
+    if (name.length < 2) return;
+    createEchelon.mutate(
+      { name },
+      {
+        onSuccess: () => {
+          setNewEchelonOpen(false);
+          setNewEchelonName('');
+          toast.success('Echelon creado');
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  }, [newEchelonName, createEchelon]);
 
   if (product.isError) {
     return (
@@ -66,9 +88,36 @@ export function ProductDetailContent({ productId }: { productId: string }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <Dialog open={newEchelonOpen} onOpenChange={setNewEchelonOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo echelon</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="echelon-name">Nombre</Label>
+            <Input
+              id="echelon-name"
+              value={newEchelonName}
+              onChange={(e) => setNewEchelonName(e.target.value)}
+              placeholder="Ej: Q1 2026"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewEchelonOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateEchelon}
+              disabled={createEchelon.isPending || newEchelonName.trim().length < 2}
+            >
+              Crear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
+          <h1 className="page-title">{p.name}</h1>
           <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
             <Link
               href={`/companies/${p.companyId}`}
@@ -83,7 +132,7 @@ export function ProductDetailContent({ productId }: { productId: string }) {
             <span>{sessionsCount} sesiones totales</span>
           </div>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={() => setNewEchelonOpen(true)}>
           <Plus className="mr-2 size-3.5" />
           Nuevo echelon
         </Button>
@@ -113,7 +162,7 @@ export function ProductDetailContent({ productId }: { productId: string }) {
               title="Sin echelons"
               description="Creá el primer echelon para este producto."
               action={
-                <Button size="sm">
+                <Button size="sm" onClick={() => setNewEchelonOpen(true)}>
                   <Plus className="mr-2 size-4" />
                   Nuevo echelon
                 </Button>
@@ -142,7 +191,10 @@ export function ProductDetailContent({ productId }: { productId: string }) {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-base font-medium">{e.name ?? e.id}</p>
-                      <Badge variant="outline" className={`mt-1 ${stateBadgeClass[state] ?? ''}`}>
+                      <Badge
+                        variant="outline"
+                        className={`mt-1 ${ECHELON_STATE_BADGE_CLASS[state] ?? ''}`}
+                      >
                         {state.replace('_', ' ')}
                       </Badge>
                     </div>

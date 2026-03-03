@@ -394,3 +394,36 @@ Diferidas (Opción D):
 Los Fast Refresh rebuilds (100 ms–2.5 s en los logs), el overhead de Sentry con source maps (`Client Instrumentation Hook: 475ms`), y Vercel Analytics en debug mode son exclusivos del entorno de desarrollo. No existen en producción.
 
 La latencia de `withAuth` cookies (~200–400 ms por request en dev) es el único cuello de botella estructural que persiste post Fase 1, y es consecuencia directa de la distancia geográfica entre la máquina de desarrollo y gru1. En producción (Vercel Functions gru1 → Supabase gru1) ese salto es local y toma < 5 ms.
+
+---
+
+## 11. Load testing (k6)
+
+Pruebas de carga para endpoints críticos (Fase H — BACKLOG H3).
+
+**Herramienta:** [k6](https://k6.io/docs/getting-started/installation/) (instalación local).
+
+**Script:** `scripts/load-test.js`
+
+**Endpoints ejercitados:**
+
+- `GET /api/v1/companies` — lista paginada
+- `GET /api/v1/context/:echelonId` — context bundle (el más pesado)
+- `POST /api/v1/echelons/:id/consolidate` — consolidación AI
+
+**Uso:**
+
+```bash
+# Obtener JWT y IDs (ej. login vía POST /api/v1/auth/login)
+export AUTH_TOKEN="<jwt>"
+export ORG_ID="<organization-uuid>"
+export ECHELON_ID="<echelon-uuid>"   # opcional; si no se setea, context/consolidate se omiten
+
+# Ejecutar (default: 5 VUs, 30s)
+pnpm load-test
+
+# O con k6 directo y variables
+VUS=10 DURATION=60s BASE_URL=https://your-app.vercel.app AUTH_TOKEN=... ORG_ID=... ECHELON_ID=... k6 run scripts/load-test.js
+```
+
+**Umbrales por defecto:** `p(95) < 5s` para latencia, `http_req_failed < 10%`.

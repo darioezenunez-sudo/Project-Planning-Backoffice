@@ -28,7 +28,7 @@ export function createContextBundleService(deps: ContextBundleDeps) {
   async function getContextBundle(
     echelonId: string,
     organizationId: string,
-    options?: { maxTokens?: number },
+    options?: { maxTokens?: number; rankedSummaryIds?: string[] },
   ): Promise<Result<ContextBundleResponse>> {
     const echelon = await deps.echelonRepo.findById(echelonId, organizationId);
     if (echelon === null) {
@@ -42,15 +42,17 @@ export function createContextBundleService(deps: ContextBundleDeps) {
       }),
     ]);
 
+    const orderedItems = orderSummariesByRank(summaryResult.items, options?.rankedSummaryIds);
+
     const rfIds = requiredFields.map((r) => r.id);
-    const summaryIds = summaryResult.items.map((s) => s.id);
+    const summaryIds = orderedItems.map((s) => s.id);
     const decisionLinks = await deps.decisionLinkRepo.findManyForEchelon(
       rfIds,
       summaryIds,
       organizationId,
     );
 
-    const sessionIds = [...new Set(summaryResult.items.map((s) => s.sessionId))];
+    const sessionIds = [...new Set(orderedItems.map((s) => s.sessionId))];
     const sessions =
       sessionIds.length > 0 ? await deps.sessionRepo.findManyByIds(sessionIds, organizationId) : [];
     const sessionMap = new Map(sessions.map((s) => [s.id, s]));
@@ -58,7 +60,7 @@ export function createContextBundleService(deps: ContextBundleDeps) {
     const maxTokens = options?.maxTokens ?? 8000;
     const totalCharLimit = maxTokens * CHARS_PER_TOKEN;
 
-    const summaries = buildSummarySnippets(summaryResult.items, sessionMap, totalCharLimit);
+    const summaries = buildSummarySnippets(orderedItems, sessionMap, totalCharLimit);
 
     const response: ContextBundleResponse = {
       echelonId,
@@ -90,6 +92,38 @@ export function createContextBundleService(deps: ContextBundleDeps) {
 export type ContextBundleService = ReturnType<typeof createContextBundleService>;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
+
+/**
+ * When rankedSummaryIds is provided (from pgvector similarity), order items so that
+ * those ids come first in that order; the rest follow with default sort (validated first, then createdAt).
+ */
+function orderSummariesByRank(
+  items: SummaryRow[],
+  rankedSummaryIds: string[] | undefined,
+): SummaryRow[] {
+  if (!rankedSummaryIds || rankedSummaryIds.length === 0) {
+    return items;
+  }
+  const byId = new Map(items.map((s) => [s.id, s]));
+  const ordered: SummaryRow[] = [];
+  const seen = new Set<string>();
+  for (const id of rankedSummaryIds) {
+    const s = byId.get(id);
+    if (s) {
+      ordered.push(s);
+      seen.add(s.id);
+    }
+  }
+  const rest = items
+    .filter((s) => !seen.has(s.id))
+    .sort((a, b) => {
+      const aVal = a.state === 'VALIDATED' ? 1 : 0;
+      const bVal = b.state === 'VALIDATED' ? 1 : 0;
+      if (bVal !== aVal) return bVal - aVal;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  return [...ordered, ...rest];
+}
 
 function buildSummarySnippets(
   items: SummaryRow[],

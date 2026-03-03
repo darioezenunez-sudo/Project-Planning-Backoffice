@@ -8,15 +8,20 @@
     "close": "Cerrar",
     "back": "Volver",
     "empty": "No hay datos",
-    "seeAll": "Ver todos"
+    "seeAll": "Ver todos",
+    "detail": "Detalle"
   },
   "nav": {
     "dashboard": "Dashboard",
     "companies": "Empresas",
+    "products": "Productos",
     "echelons": "Echelons",
+    "sessions": "Sesiones",
+    "consolidation": "Consolidación",
     "devices": "Dispositivos",
     "budget": "Presupuesto",
     "auditLog": "Auditoría",
+    "members": "Miembros",
     "settings": "Configuración"
   },
   "auth": {
@@ -26,7 +31,31 @@
     "email": "Correo",
     "password": "Contraseña",
     "forgotPassword": "¿Olvidaste tu contraseña?",
-    "noAccess": "No tenés acceso, contactá al administrador."
+    "noAccess": "No tenés acceso, contactá al administrador.",
+    "registerTitle": "Crear cuenta",
+    "registerDescription": "Completá el formulario para registrarte. Si tu correo requiere verificación, te enviaremos un enlace.",
+    "fullName": "Nombre completo",
+    "fullNamePlaceholder": "Ej: María García",
+    "createAccount": "Crear mi cuenta",
+    "creatingAccount": "Creando cuenta...",
+    "checkEmailConfirm": "Revisá tu correo para confirmar la cuenta. Luego iniciá sesión.",
+    "alreadyHaveAccount": "¿Ya tenés cuenta?",
+    "noAccount": "¿No tenés cuenta?",
+    "confirmPassword": "Confirmar contraseña"
+  },
+  "onboarding": {
+    "title": "Configurá tu cuenta",
+    "description": "Creá tu primera organización o unite a una existente.",
+    "createOrg": "Crear primera organización",
+    "createOrgDescription": "Creá una organización para empezar a usar el backoffice.",
+    "orgName": "Nombre de la organización",
+    "orgNamePlaceholder": "Ej: Mi Empresa",
+    "createAndContinue": "Crear y continuar",
+    "creating": "Creando...",
+    "joinExisting": "Unirse a una existente",
+    "joinExistingDescription": "Si un administrador te invitó por correo, hacé clic en el enlace que te enviaron para unirte a la organización.",
+    "loading": "Cargando...",
+    "backToDashboard": "Ir al dashboard"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -51,7 +80,13 @@
     "products": "Productos",
     "created": "Creado",
     "empty": "No hay empresas. Creá la primera.",
-    "detail": "Detalle de empresa"
+    "detail": "Detalle de empresa",
+    "editCompany": "Editar empresa",
+    "deleteCompany": "Eliminar empresa",
+    "deleteConfirm": "¿Eliminar «{name}»? Esta acción no se puede deshacer.",
+    "delete": "Eliminar",
+    "updated": "Empresa actualizada.",
+    "deleted": "Empresa eliminada."
   },
   "products": {
     "detail": "Detalle de producto",
@@ -80,14 +115,67 @@
   },
   "budget": {
     "title": "Presupuesto",
-    "empty": "No hay registros de uso."
+    "empty": "No hay registros de uso.",
+    "chartTitle": "Uso por período",
+    "planificado": "Planificado",
+    "ejecutado": "Ejecutado",
+    "alertOver100": "Uso por encima del límite",
+    "alertOver80": "Uso cercano al límite",
+    "noLimitConfigured": "Sin límite configurado",
+    "period": "Período",
+    "tokens": "Tokens",
+    "line": "Línea",
+    "breakdownByLine": "Desglose por línea"
   },
   "audit": {
     "title": "Registro de Auditoría",
     "empty": "No hay eventos de auditoría."
   },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "No hay notificaciones.",
+    "loading": "Cargando…",
+    "markAllRead": "Marcar todas como leídas",
+    "ariaLabel": "Notificaciones"
+  },
+  "members": {
+    "title": "Miembros de la organización",
+    "inviteMember": "Invitar miembro",
+    "empty": "No hay miembros.",
+    "emptyDescription": "Solo administradores pueden invitar a nuevos miembros.",
+    "member": "Miembro",
+    "email": "Correo",
+    "role": "Rol",
+    "actions": "Acciones",
+    "changeRole": "Cambiar rol",
+    "remove": "Quitar de la organización",
+    "removeMember": "Quitar miembro",
+    "removeConfirm": "¿Quitar a «{name}» de la organización? Esta acción no se puede deshacer.",
+    "invited": "Invitación enviada.",
+    "roleUpdated": "Rol actualizado.",
+    "removed": "Miembro quitado.",
+    "changeRoleFor": "Cambiar rol de {name}",
+    "roles": {
+      "VIEWER": "Viewer",
+      "MEMBER": "Member",
+      "MANAGER": "Manager",
+      "ADMIN": "Admin",
+      "SUPER_ADMIN": "Super Admin"
+    }
+  },
   "settings": {
     "title": "Configuración",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "email": "Correo",
+    "displayName": "Nombre para mostrar",
+    "displayNamePlaceholder": "Tu nombre",
+    "saveProfile": "Guardar nombre",
+    "changePassword": "Cambiar contraseña",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "savePassword": "Guardar contraseña",
+    "profileSaved": "Perfil actualizado.",
+    "passwordUpdated": "Contraseña actualizada.",
+    "passwordMismatch": "Las contraseñas no coinciden."
   }
 }

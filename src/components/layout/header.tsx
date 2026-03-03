@@ -1,18 +1,9 @@
 'use client';
 
-import { Bell, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronDown } from 'lucide-react';
 import * as React from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,14 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { NotificationBell } from '@/components/ui/notification-bell';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/hooks/use-auth';
 
-export type BreadcrumbEntry = { label: string; href?: string };
-
-type AppHeaderProps = {
-  breadcrumbs: BreadcrumbEntry[];
-};
+import { Breadcrumbs } from './breadcrumbs';
 
 function getInitials(email: string): string {
   const part = email.split('@')[0];
@@ -36,7 +25,7 @@ function getInitials(email: string): string {
   return part.slice(0, 1).toUpperCase();
 }
 
-export function AppHeader({ breadcrumbs }: AppHeaderProps) {
+export function AppHeader() {
   const { user, signOut } = useAuth();
   const metadata = user?.user_metadata as { full_name?: string } | undefined;
   const displayName = metadata?.full_name ?? user?.email ?? 'Usuario';
@@ -44,33 +33,10 @@ export function AppHeader({ breadcrumbs }: AppHeaderProps) {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          {breadcrumbs.map((item, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {item.href != null ? (
-                  <BreadcrumbLink asChild>
-                    <Link href={item.href}>{item.label}</Link>
-                  </BreadcrumbLink>
-                ) : (
-                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      <Breadcrumbs />
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground"
-          aria-label="Notificaciones"
-        >
-          <Bell className="size-[18px]" />
-        </Button>
+        <ThemeToggle />
+        <NotificationBell />
         <Separator orientation="vertical" className="h-6" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

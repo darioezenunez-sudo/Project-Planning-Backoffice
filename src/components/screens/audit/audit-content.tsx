@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { SkeletonTable } from '@/components/shared/skeleton-table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -47,7 +48,7 @@ export function AuditContent() {
   if (audit.isLoading) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <Skeleton className="h-8 w-56" />
         <Card className="rounded-xl border shadow-sm">
           <CardContent className="p-0">
             <SkeletonTable rows={8} columns={5} />
@@ -59,7 +60,7 @@ export function AuditContent() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <h1 className="page-title">{t('title')}</h1>
       {items.length === 0 ? (
         <Card className="rounded-xl border shadow-sm">
           <CardContent className="py-12">

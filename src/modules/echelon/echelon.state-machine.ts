@@ -10,7 +10,8 @@ export type EchelonEvent =
   | 'START_SESSION' // OPEN → IN_PROGRESS (first session created)
   | 'CONSOLIDATE' // IN_PROGRESS → CLOSING (consolidation queued)
   | 'CONSOLIDATION_COMPLETE' // CLOSING → CLOSURE_REVIEW (Fase 4: AI job done)
-  | 'CLOSE'; // CLOSURE_REVIEW → CLOSED
+  | 'CLOSE' // CLOSURE_REVIEW → CLOSED
+  | 'REJECT'; // CLOSURE_REVIEW → IN_PROGRESS (rechazar cierre)
 
 // ─── Transition table ──────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ const TRANSITIONS: Record<EchelonState, Partial<Record<EchelonEvent, EchelonStat
   OPEN: { START_SESSION: 'IN_PROGRESS' },
   IN_PROGRESS: { CONSOLIDATE: 'CLOSING' },
   CLOSING: { CONSOLIDATION_COMPLETE: 'CLOSURE_REVIEW' },
-  CLOSURE_REVIEW: { CLOSE: 'CLOSED' },
+  CLOSURE_REVIEW: { CLOSE: 'CLOSED', REJECT: 'IN_PROGRESS' },
   CLOSED: {},
 };
 

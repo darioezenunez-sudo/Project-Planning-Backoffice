@@ -18,6 +18,7 @@ export const echelonEventEnum = z.enum([
   'CONSOLIDATE',
   'CONSOLIDATION_COMPLETE',
   'CLOSE',
+  'REJECT', // CLOSURE_REVIEW → IN_PROGRESS (rechazar cierre)
 ]);
 export type EchelonEvent = z.infer<typeof echelonEventEnum>;
 
@@ -31,9 +32,17 @@ export type CreateEchelonInput = z.infer<typeof createEchelonSchema>;
 export const updateEchelonSchema = z.object({
   name: z.string().min(2).max(200).optional(),
   configBlueprint: z.record(z.unknown()).optional(),
+  /** F2: when in CLOSURE_REVIEW, allow updating the consolidated report (edited version). */
+  consolidatedReport: z.record(z.unknown()).optional(),
   version: z.number().int().min(1),
 });
 export type UpdateEchelonInput = z.infer<typeof updateEchelonSchema>;
+
+export const transitionEchelonSchema = z.object({
+  event: echelonEventEnum,
+  version: z.number().int().min(1),
+});
+export type TransitionEchelonInput = z.infer<typeof transitionEchelonSchema>;
 
 export const listEchelonsQuerySchema = paginationQuerySchema.extend({
   productId: z.string().uuid().optional(),

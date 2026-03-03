@@ -44,6 +44,10 @@ describe('transitionEchelon — valid transitions', () => {
   it('CLOSURE_REVIEW + CLOSE → CLOSED', () => {
     expectTransitionOk('CLOSURE_REVIEW', 'CLOSE', 'CLOSED');
   });
+
+  it('CLOSURE_REVIEW + REJECT → IN_PROGRESS', () => {
+    expectTransitionOk('CLOSURE_REVIEW', 'REJECT', 'IN_PROGRESS');
+  });
 });
 
 // ─── Invalid transitions from OPEN ────────────────────────────────────────────
@@ -57,6 +61,9 @@ describe('transitionEchelon — invalid from OPEN', () => {
   });
   it('OPEN + CLOSE → error', () => {
     expectTransitionErr('OPEN', 'CLOSE');
+  });
+  it('OPEN + REJECT → error', () => {
+    expectTransitionErr('OPEN', 'REJECT');
   });
 });
 
@@ -72,6 +79,9 @@ describe('transitionEchelon — invalid from IN_PROGRESS', () => {
   it('IN_PROGRESS + CLOSE → error', () => {
     expectTransitionErr('IN_PROGRESS', 'CLOSE');
   });
+  it('IN_PROGRESS + REJECT → error', () => {
+    expectTransitionErr('IN_PROGRESS', 'REJECT');
+  });
 });
 
 // ─── Invalid transitions from CLOSING ─────────────────────────────────────────
@@ -85,6 +95,9 @@ describe('transitionEchelon — invalid from CLOSING', () => {
   });
   it('CLOSING + CLOSE → error', () => {
     expectTransitionErr('CLOSING', 'CLOSE');
+  });
+  it('CLOSING + REJECT → error', () => {
+    expectTransitionErr('CLOSING', 'REJECT');
   });
 });
 
@@ -116,5 +129,8 @@ describe('transitionEchelon — CLOSED is terminal (all events fail)', () => {
   });
   it('CLOSED + CLOSE → error', () => {
     expectTransitionErr('CLOSED', 'CLOSE');
+  });
+  it('CLOSED + REJECT → error', () => {
+    expectTransitionErr('CLOSED', 'REJECT');
   });
 });

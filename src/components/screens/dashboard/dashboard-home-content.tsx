@@ -13,7 +13,7 @@ export function DashboardHomeContent() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <h1 className="page-title">{t('title')}</h1>
       <DashboardStats />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">

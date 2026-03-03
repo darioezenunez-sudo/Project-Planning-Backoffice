@@ -65,6 +65,15 @@ export function createEchelonService(
     if (!existing) {
       return err(new AppError(ErrorCode.NOT_FOUND, 404, `Echelon ${id} not found`));
     }
+    if (input.consolidatedReport !== undefined && existing.state !== 'CLOSURE_REVIEW') {
+      return err(
+        new AppError(
+          ErrorCode.BAD_REQUEST,
+          400,
+          'consolidatedReport can only be updated when echelon is in CLOSURE_REVIEW',
+        ),
+      );
+    }
 
     const updated = await repo.update(id, organizationId, input);
     if (!updated) {

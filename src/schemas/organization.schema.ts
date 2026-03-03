@@ -11,7 +11,16 @@ export const organizationSchema = z.object({
 
 export const createOrganizationSchema = z.object({
   name: z.string().min(2).max(120),
-  slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/),
+});
+
+/** Onboarding: create first org — only name; slug is derived server-side. */
+export const createOrganizationOnboardingSchema = z.object({
+  name: z.string().min(2).max(120),
 });
 
 export const updateOrganizationSchema = z.object({
@@ -20,4 +29,5 @@ export const updateOrganizationSchema = z.object({
 });
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+export type CreateOrganizationOnboardingInput = z.infer<typeof createOrganizationOnboardingSchema>;
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;

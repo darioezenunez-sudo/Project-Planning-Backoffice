@@ -7,6 +7,8 @@ import { CompaniesListContent } from '@/components/screens/companies/companies-l
 import { AllProviders } from './test-utils';
 
 const mockUseCompanies = vi.fn();
+const mockUpdateCompany = vi.fn();
+const mockDeleteCompany = vi.fn();
 vi.mock('@/hooks/use-companies', () => ({
   useCompanies: (params: unknown) => mockUseCompanies(params) as unknown,
   useCreateCompany: () => ({
@@ -14,6 +16,14 @@ vi.mock('@/hooks/use-companies', () => ({
     isPending: false,
     isError: false,
     error: null,
+  }),
+  useUpdateCompany: () => ({
+    mutate: mockUpdateCompany,
+    isPending: false,
+  }),
+  useDeleteCompany: () => ({
+    mutate: mockDeleteCompany,
+    isPending: false,
   }),
 }));
 

@@ -17,6 +17,8 @@ const defaultMessages = {
     retry: 'Reintentar',
     empty: 'No hay datos',
     seeAll: 'Ver todos',
+    save: 'Guardar',
+    cancel: 'Cancelar',
   },
   companies: {
     title: 'Empresas',
@@ -27,6 +29,12 @@ const defaultMessages = {
     products: 'Productos',
     created: 'Creado',
     empty: 'No hay empresas.',
+    editCompany: 'Editar empresa',
+    deleteCompany: 'Eliminar empresa',
+    deleteConfirm: '¿Eliminar «{name}»?',
+    delete: 'Eliminar',
+    updated: 'Empresa actualizada.',
+    deleted: 'Empresa eliminada.',
   },
 } as Record<string, Record<string, string>>;
 

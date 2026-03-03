@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, LayoutDashboard, Lock } from 'lucide-react';
+import { AlertCircle, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -49,7 +49,7 @@ export default function RegisterPage() {
     setSubmitError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: { data: { full_name: data.fullName } },
@@ -58,7 +58,11 @@ export default function RegisterPage() {
         setSubmitError(error.message);
         return;
       }
-      router.push('/dashboard');
+      if (signUpData.session != null) {
+        router.push('/onboarding');
+      } else {
+        router.push('/login?registered=1');
+      }
       router.refresh();
     } catch {
       setSubmitError('Error de conexión. Intentá de nuevo.');
@@ -80,11 +84,8 @@ export default function RegisterPage() {
 
         <Card className="w-full rounded-xl border shadow-sm">
           <CardHeader className="space-y-1">
-            <h1 className="text-xl font-semibold">Completá tu registro</h1>
-            <p className="text-sm text-muted-foreground">
-              Tu cuenta fue pre-creada por un administrador. Solo falta que establezcas tu
-              contraseña.
-            </p>
+            <h1 className="text-xl font-semibold">{t('registerTitle')}</h1>
+            <p className="text-sm text-muted-foreground">{t('registerDescription')}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {submitError != null && (
@@ -105,20 +106,9 @@ export default function RegisterPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="inline-flex items-center gap-2">
-                        {t('email')}
-                        <span className="text-xs text-muted-foreground">(read-only)</span>
-                      </FormLabel>
+                      <FormLabel>{t('email')}</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="email"
-                            readOnly
-                            className="cursor-not-allowed bg-muted pr-9"
-                            {...field}
-                          />
-                          <Lock className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                        </div>
+                        <Input type="email" placeholder="email@ejemplo.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -129,9 +119,9 @@ export default function RegisterPage() {
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre completo *</FormLabel>
+                      <FormLabel>{t('fullName')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ej: María García" {...field} />
+                        <Input placeholder={t('fullNamePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -142,7 +132,7 @@ export default function RegisterPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contraseña *</FormLabel>
+                      <FormLabel>{t('password')}</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="Mínimo 8 caracteres" {...field} />
                       </FormControl>
@@ -155,7 +145,7 @@ export default function RegisterPage() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirmar contraseña *</FormLabel>
+                      <FormLabel>{t('confirmPassword')}</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="Repetí tu contraseña" {...field} />
                       </FormControl>
@@ -167,10 +157,10 @@ export default function RegisterPage() {
                   {isSubmitting ? (
                     <>
                       <Spinner className="size-4" />
-                      Creando cuenta...
+                      {t('creatingAccount')}
                     </>
                   ) : (
-                    'Crear mi cuenta'
+                    t('createAccount')
                   )}
                 </Button>
               </form>
@@ -179,9 +169,9 @@ export default function RegisterPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          ¿Problemas con tu invitación?{' '}
-          <Link href="#" className="text-primary underline">
-            Contactar soporte
+          {t('alreadyHaveAccount')}{' '}
+          <Link href="/login" className="text-primary underline">
+            {t('login')}
           </Link>
         </p>
       </div>

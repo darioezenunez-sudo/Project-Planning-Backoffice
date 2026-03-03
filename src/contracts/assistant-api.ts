@@ -22,6 +22,10 @@ export const assistantDeviceValidationResponseSchema = deviceValidationResponseS
 
 // ─── Context Bundle (GET /context/[echelonId]) ────────────────────────────────
 
+/** Query embedding (768 dims) for ranked retrieval. Sent as base64url(JSON.stringify(number[])) on GET. */
+export const CONTEXT_QUERY_EMBEDDING_DIMS = 768;
+export const contextQueryEmbeddingSchema = z.array(z.number()).length(CONTEXT_QUERY_EMBEDDING_DIMS);
+
 export const requiredFieldAnchorSchema = z.object({
   id: uuidSchema,
   label: z.string(),

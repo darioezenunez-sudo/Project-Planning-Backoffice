@@ -6,6 +6,7 @@ export const navItems = [
   { href: '/devices', label: 'Dispositivos', icon: 'Monitor' as const },
   { href: '/budget', label: 'Presupuesto', icon: 'BarChart3' as const },
   { href: '/audit-log', label: 'Auditoría', icon: 'ClipboardList' as const },
+  { href: '/members', label: 'Miembros', icon: 'Users' as const },
   { href: '/settings', label: 'Configuración', icon: 'Settings' as const },
 ] as const;
 

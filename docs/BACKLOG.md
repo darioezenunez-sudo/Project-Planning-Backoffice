@@ -1,8 +1,8 @@
 # Product Backlog — Project-Planning Backoffice
 
-> **Versión:** 1.0 | **Creado:** 2026-03-02 | **Branch:** develop
+> **Versión:** 1.1 | **Creado:** 2026-03-02 | **Actualizado:** 2026-03-03 | **Branch:** develop
 > Issues identificados post-Fase 7. Organizados en fases de implementación por prioridad e impacto.
-> Estado actual del sistema: 334 unit tests · 26/26 E2E · `pnpm validate` green
+> Estado actual del sistema: 334 unit tests · 26/26 E2E · Fase H (H1–H4) completada · lint corregido en pantallas/hooks
 
 ---
 
@@ -581,33 +581,61 @@ Para todas las mutations:
 
 ---
 
-### H5 — pgvector Ranked Retrieval (cuando Assistant esté listo)
+### H5 — pgvector Ranked Retrieval ✅
 
-**Tipo:** Feature | **Prioridad:** 🔵 DIFERIDO | **Esfuerzo:** 2h
+**Tipo:** Feature | **Prioridad:** 🟢 BAJA | **Esfuerzo:** 2h | **Estado:** Implementado (2026-03-03)
 
-**Descripción:** `src/lib/pgvector.ts` (`findSummaryIdsBySimilarity`) está implementado y testeado. No está integrado porque el Electron app aún no envía `queryEmbedding` en los requests de context bundle.
+**Descripción:** Integración de `findSummaryIdsBySimilarity` en el context bundle. Cuando el Assistant (Electron app) envía el query param `queryEmbedding` (base64url de un array JSON de 768 números), el endpoint `GET /api/v1/context/:echelonId` devuelve los summaries ordenados por similitud coseno (pgvector). Sin el param, el comportamiento es el anterior (cache, orden por VALIDATED y createdAt).
 
-**Dependencia:** Acuerdo de contrato API con el Electron app (Data Plane).
+**Archivos:** `src/app/api/v1/context/[echelonId]/route.ts`, `src/modules/context-bundle/context-bundle.service.ts`, `src/contracts/assistant-api.ts`. Documentación: `docs/ARCHITECTURE.md` §4 (GET /context — Ranked retrieval).
+
+---
+
+## Estado de implementación (checklist)
+
+> Orden del backlog: **A → B → C → D → E → F → G → H**; dentro de cada fase por número de ítem (A1, A2, …).  
+> C depende de B (botones usan mutation hooks). Actualizado: 2026-03-03.
+
+### Hecho
+
+| Fase | Ítems                              |
+| ---- | ---------------------------------- |
+| A    | A1, A2, A3, A4                     |
+| B    | B1, B2, B3, B4, B5, B6, B7, B8, B9 |
+| C    | C1, C2, C3, C4                     |
+| D    | D1, D2, D3, D4, D5                 |
+| E    | E1, E2                             |
+| F    | F1, F2, F3, F4                     |
+| G    | G1, G2, G3, G4                     |
+| H    | H1, H2, H3, H4, H5                 |
+
+### Pendiente
+
+_(Ninguno en esta versión.)_
+
+**Resumen:** Hecho A1–A4, B1–B9, C1–C4, D1–D5, E1–E2, F1–F4, G1–G4, H1–H5.
 
 ---
 
 ## Criterio de Cierre por Fase
 
-| Fase | Criterio                                                                        |
-| ---- | ------------------------------------------------------------------------------- |
-| A    | `pnpm validate` green; staleTime corregido; FSM action bar funcional            |
-| B    | Todos los hooks listados creados con tests unitarios                            |
-| C    | Todos los botones conectados; toasts funcionando; dialogs de confirmación       |
-| D    | Notificaciones bell con badge; breadcrumbs en todas las pantallas; empty states |
-| E    | Pantalla de miembros funcional; invite + change role + remove                   |
-| F    | Tiptap integrado; vista de revisión de consolidación funcional                  |
-| G    | Dark mode toggle visible; paleta de marca aplicada                              |
-| H    | Realtime suscripciones activas; load test ejecutado                             |
+| Fase | Criterio                                                                                |
+| ---- | --------------------------------------------------------------------------------------- |
+| A    | `pnpm validate` green; staleTime corregido; FSM action bar funcional                    |
+| B    | Todos los hooks listados creados con tests unitarios                                    |
+| C    | Todos los botones conectados; toasts funcionando; dialogs de confirmación               |
+| D    | Notificaciones bell con badge; breadcrumbs en todas las pantallas; empty states         |
+| E    | Pantalla de miembros funcional; invite + change role + remove                           |
+| F    | Tiptap integrado; vista de revisión de consolidación funcional                          |
+| G    | Dark mode toggle visible; paleta de marca aplicada                                      |
+| H    | Realtime; banner offline; load test (k6); Sentry Vercel; pgvector ranked retrieval (H5) |
 
 ---
 
 ## Historial de Versiones
 
-| Versión | Fecha      | Cambios                                                          |
-| ------- | ---------- | ---------------------------------------------------------------- |
-| 1.0     | 2026-03-02 | Documento inicial — 8 fases, 30 issues identificados post-Fase 7 |
+| Versión | Fecha      | Cambios                                                                                                                           |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-03-02 | Documento inicial — 8 fases, 30 issues identificados post-Fase 7                                                                  |
+| 1.1     | 2026-03-03 | Fase H completada (H1–H4). H5 diferido. Correcciones de lint en onboarding, notifications, pantallas, attachments-gallery, hooks. |
+| 1.2     | 2026-03-03 | H5 implementado: pgvector ranked retrieval en GET /context/:echelonId (query param queryEmbedding en base64url).                  |

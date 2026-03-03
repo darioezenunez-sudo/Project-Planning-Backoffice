@@ -1,9 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, LayoutDashboard } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -26,6 +26,8 @@ import { loginSchema, type LoginInput } from '@/schemas/user.schema';
 export default function LoginPage() {
   const t = useTranslations('auth');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get('registered') === '1';
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useForm<LoginInput>({
@@ -72,6 +74,12 @@ export default function LoginPage() {
             <p className="text-sm text-muted-foreground">Ingresá tus credenciales para continuar</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {registered && (
+              <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-200">
+                <CheckCircle2 className="size-4" />
+                <AlertDescription>{t('checkEmailConfirm')}</AlertDescription>
+              </Alert>
+            )}
             {submitError != null && (
               <Alert variant="destructive">
                 <AlertCircle className="size-4" />
@@ -139,7 +147,12 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">{t('noAccess')}</p>
+        <p className="text-center text-sm text-muted-foreground">
+          {t('noAccount')}{' '}
+          <Link href="/register" className="text-primary underline">
+            {t('register')}
+          </Link>
+        </p>
       </div>
     </div>
   );

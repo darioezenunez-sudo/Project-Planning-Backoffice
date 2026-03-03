@@ -1,8 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { ListProductsQuery, Product } from '@/schemas/product.schema';
+import type {
+  CreateProductInput,
+  ListProductsQuery,
+  Product,
+  UpdateProductInput,
+} from '@/schemas/product.schema';
 import type { PaginationMeta } from '@/schemas/shared.schema';
 
 import { useTenant } from './use-tenant';
@@ -52,5 +57,70 @@ export function useProduct(id: string | null) {
       return json.data;
     },
     enabled: !!organizationId && id != null && id.length > 0,
+  });
+}
+
+export function useCreateProduct() {
+  const { organizationId } = useTenant();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateProductInput) => {
+      const res = await fetch('/api/v1/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Organization-Id': organizationId ?? '',
+        },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const json = (await res.json()) as { data: Product };
+      return json.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const { organizationId } = useTenant();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: UpdateProductInput & { id: string }) => {
+      const res = await fetch(`/api/v1/products/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Organization-Id': organizationId ?? '',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const json = (await res.json()) as { data: Product };
+      return json.data;
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
+      void queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const { organizationId } = useTenant();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, version }: { id: string; version: number }) => {
+      const res = await fetch(`/api/v1/products/${id}?version=${encodeURIComponent(version)}`, {
+        method: 'DELETE',
+        headers: { 'X-Organization-Id': organizationId ?? '' },
+      });
+      if (!res.ok) throw new Error(await res.text());
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
+      void queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
   });
 }
