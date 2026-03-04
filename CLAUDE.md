@@ -1,6 +1,6 @@
 # CLAUDE.md — Project-Planning-Backoffice Context Primer
 
-> **Version:** 1.3.0 | **Updated:** 2026-03-02 | **Branch:** develop
+> **Version:** 1.4.0 | **Updated:** 2026-03-04 | **Branch:** develop
 > This file is auto-loaded by Claude Code. A new developer or LLM reading this file has full context.
 > For deep technical reference → `docs/ARCHITECTURE.md` | Coding rules → `docs/ENGINEERING_STANDARDS.md`
 > Product backlog → `docs/BACKLOG.md` | Technical debt → `docs/TECHNICAL_DEBT.md` | Performance → `docs/PERFORMANCE.md`
@@ -69,7 +69,7 @@ DRAFT → REVIEW → EDITED → VALIDATED
 | i18n       | next-intl                                 | locales: es/en; defaultLocale: es; localePrefix: never      |
 | State      | Zustand (sidebar) + TanStack Query        |                                                             |
 | LLM        | Vercel AI SDK → OpenAI gpt-4o-mini        | 120K max input tokens                                       |
-| Testing    | Vitest v3 (unit) + Playwright v1.52 (E2E) | 334 unit tests; E2E 26/26 passing                           |
+| Testing    | Vitest v3 (unit) + Playwright v1.52 (E2E) | 339 unit tests; E2E 36 passed + 2 skipped (38 total)        |
 | CI         | GitHub Actions                            | push/PR to main+develop                                     |
 | Monitoring | Sentry @sentry/nextjs                     | DSN configured; server + edge + client + global-error wired |
 
@@ -77,16 +77,17 @@ DRAFT → REVIEW → EDITED → VALIDATED
 
 ## 4. Phase Status
 
-| Phase  | Status      | Branch | Unit Tests | Notes                                                           |
-| ------ | ----------- | ------ | ---------- | --------------------------------------------------------------- |
-| Fase 0 | ✅ COMPLETE | main   | 16         | Toolchain, env, base config                                     |
-| Fase 1 | ✅ COMPLETE | main   | 97         | Org, Company, Product, User, Auth APIs                          |
-| Fase 2 | ✅ COMPLETE | main   | 173        | Echelon/Session/Summary FSMs + APIs                             |
-| Fase 3 | ⚠️ PARTIAL  | main   | +57        | Context bundle, pgvector, attachments                           |
-| Fase 4 | ⚠️ PARTIAL  | main   | +3         | AI consolidation, budget, devices                               |
-| Fase 5 | ✅ COMPLETE | main   | +E2E       | UI screens, hooks, auth, E2E 26/26                              |
-| Fase 6 | ✅ COMPLETE | main   | 259 total  | Infra hardening: RLS, KV cache, rate-limit, Sentry, DB          |
-| Fase 7 | ✅ COMPLETE | main   | 334 total  | Test coverage ≥70%, bug fixes, lint migration, perf cache layer |
+| Phase       | Status      | Branch  | Unit Tests | Notes                                                               |
+| ----------- | ----------- | ------- | ---------- | ------------------------------------------------------------------- |
+| Fase 0      | ✅ COMPLETE | main    | 16         | Toolchain, env, base config                                         |
+| Fase 1      | ✅ COMPLETE | main    | 97         | Org, Company, Product, User, Auth APIs                              |
+| Fase 2      | ✅ COMPLETE | main    | 173        | Echelon/Session/Summary FSMs + APIs                                 |
+| Fase 3      | ⚠️ PARTIAL  | main    | +57        | Context bundle, pgvector, attachments                               |
+| Fase 4      | ⚠️ PARTIAL  | main    | +3         | AI consolidation, budget, devices                                   |
+| Fase 5      | ✅ COMPLETE | main    | +E2E       | UI screens, hooks, auth, E2E 26/26                                  |
+| Fase 6      | ✅ COMPLETE | main    | 259 total  | Infra hardening: RLS, KV cache, rate-limit, Sentry, DB              |
+| Fase 7      | ✅ COMPLETE | main    | 334 total  | Test coverage ≥70%, bug fixes, lint migration, perf cache layer     |
+| BACKLOG A–H | ✅ COMPLETE | develop | 339 total  | All 30 backlog issues resolved; RBAC hardening + Assistant contract |
 
 **Current branch:** `develop`
 
@@ -115,6 +116,20 @@ DRAFT → REVIEW → EDITED → VALIDATED
 - **`docs/TECHNICAL_DEBT.md`:** Condensed v2.0 — all Section B items marked ✅ Done (resolved in Fase 6/7)
 - **`docs/BACKLOG.md`:** Product backlog v1.0 — 8 phases, 30 issues identified post-Fase 7
 
+### BACKLOG A–H + RBAC Hardening ✅ (on `develop`, 2026-03-04) — commit `16fd72a`
+
+- **BACKLOG A–H:** All 30 issues resolved (see `docs/BACKLOG.md` v1.2 for full checklist)
+- **RBAC fixes:** Added `withRole()` to 11 previously unprotected write endpoints:
+  - `MANAGER`: companies POST, products POST, required-fields POST/PATCH/DELETE, sessions PATCH, launch POST, attachments DELETE, decision-links PATCH/DELETE
+  - `MEMBER`: echelons sessions POST, attachments POST
+  - `ADMIN`: sessions DELETE, audit GET
+- **Fix O3:** `POST /auth/devices` validates `input.userId === ctx.userId` (403 on mismatch)
+- **Login body token:** `POST /auth/login` now returns `{ accessToken, user: { id, organizationId } }` for API clients (Electron)
+- **Device token support:** `withAuth` resolves `device_${machineId}|${orgId}|${expiresAtMs}` tokens via `device.service.resolveToken()` (15-min TTL, revocation checked)
+- **E2E contract tests:** `tests/e2e/assistant-contract.spec.ts` — 11 tests covering full Assistant ↔ Backoffice integration flow
+- **Load test:** `scripts/load-test.js` — 3 new scenarios: device-validate (p95<500ms), submit-summary (p95<2000ms), record-usage (p95<1000ms)
+- **Docs:** `docs/FUNCTIONAL_ANALYSIS.md` — full RBAC audit by role, all 40 endpoints, integration flow
+
 ### Infra (Fase 6 — merged to main) ✅
 
 - **RLS:** `supabase/migrations/20260222000001_rls_policies.sql` executed in Supabase
@@ -133,7 +148,7 @@ DRAFT → REVIEW → EDITED → VALIDATED
 3. **All types from Zod** — `z.infer<typeof schema>` in `src/schemas/*.schema.ts`
 4. **Soft delete only** — never `prisma.entity.delete()` — use `softDeleteData()`
 5. **Optimistic locking** — `updateMany({ where: { id, version } })` → count=0 = 409
-6. **Middleware chain** — `compose(withErrorHandling, withAuth, withTenant, withValidation(schema))` for all routes
+6. **Middleware chain** — `compose(withErrorHandling, withAuth, withTenant, [withRole('X')], [withAudit('Y')], withValidation(schema))` — `withRole` always after `withTenant`, before `withAudit`
 7. **Tailwind v3.4.17 only** — never `npm upgrade tailwindcss` (breaks Shadcn/ui)
 8. **`pnpm validate` before every commit** — `lint + type-check + test:run`
 9. **Conventional commits** — `feat(scope):`, `fix(scope):` etc. — max 100 chars; subject lowercase
@@ -151,7 +166,8 @@ docs/                                  ← Active documentation
   ENGINEERING_STANDARDS.md            ← Coding rules, patterns, naming conventions
   PERFORMANCE.md                       ← Latency audit, cache layers, DB index plan
   TECHNICAL_DEBT.md                    ← Technical debt tracker (all B1-B7 resolved)
-  BACKLOG.md                           ← Product backlog: 8 phases, 30 issues post-Fase 7
+  BACKLOG.md                           ← Product backlog v1.2 — A–H complete; Phase I (Assistant) pending
+  FUNCTIONAL_ANALYSIS.md              ← Full RBAC audit: 40 endpoints × 5 roles, integration flow
   resumen_ejecutivo_*.md               ← Executive summary v5.1 (system overview)
   legacy/                              ← Deprecated docs (kept for history, do not edit)
     DEVELOPMENT_PLAN_MVP.md            ← Original MVP plan (superseded by BACKLOG.md)
@@ -159,6 +175,7 @@ docs/                                  ← Active documentation
     ENGINEERING_STANDARDS_LEGACY.md   ← Old standards (superseded by docs/ENGINEERING_STANDARDS.md)
     FASE5_SCREENS.md                   ← UI screen inventory (superseded by src/components/screens/)
     Plan_fase_5_inicio.md              ← Fase 5 kickoff notes
+    plan_provisorio.md                 ← RBAC execution plan (executed 2026-03-04, superseded)
 
 src/lib/
   env.ts                               ← Env var validation (Zod, optional in dev)
@@ -168,7 +185,8 @@ src/lib/
   errors/app-error.ts                  ← AppError: code, httpStatus, message, context
   errors/error-codes.ts                ← All ErrorCode values (incl. RATE_LIMITED)
   middleware/compose.ts                ← compose(...middlewares) for route handlers
-  middleware/with-auth.ts              ← Bearer token → Supabase JWT verify
+  middleware/with-auth.ts              ← Bearer token → Supabase JWT OR device_* token verify
+  middleware/with-role.ts              ← RBAC guard: withRole('MANAGER') etc. (after withTenant)
   middleware/with-tenant.ts            ← X-Organization-Id header → RBAC inject
   middleware/with-validation.ts        ← Zod safeParse → 422 with details[]
   middleware/with-rate-limit.ts        ← Sliding window in-memory rate limiter
@@ -176,6 +194,8 @@ src/lib/
   supabase/server.ts                   ← Service-role client (bypasses RLS) — ADMIN only
   supabase/client.ts                   ← Browser client (anon key, respects RLS)
   cache/kv.ts                          ← Upstash Redis: kvGet/kvSet/kvDel (graceful fallback)
+  cache/auth-cache.ts                  ← Supabase JWT cache (SHA-256 key, TTL 60s)
+  cache/tenant-cache.ts                ← Org membership cache (TTL 120s)
   cache/context-cache.ts               ← Context bundle cache helpers (TTL 5min)
   ai/provider.ts                       ← OpenAI gpt-4o-mini, generateConsolidationReport()
   utils/pagination.ts                  ← cursor pagination, buildCursorPagination()
@@ -188,11 +208,15 @@ src/instrumentation.ts                 ← Next.js instrumentation hook (server 
 src/instrumentation-client.ts          ← Sentry client init (reads NEXT_PUBLIC_SENTRY_DSN)
 src/app/global-error.tsx               ← Global error boundary → Sentry.captureException
 
-src/app/api/v1/                        ← All REST handlers
+src/app/api/v1/                        ← All REST handlers (40 endpoints, all RBAC-protected)
 src/components/screens/                ← 15 UI screens (all real, not stubs)
 src/components/ui/                     ← 24 Shadcn primitives (do not edit)
-src/hooks/                             ← 15 data hooks (all connected to real API)
+src/hooks/                             ← data + mutation hooks (all connected to real API)
 src/stores/auth-store.ts               ← Zustand auth store (real implementation)
+src/contracts/assistant-api.ts         ← Zod schemas: Assistant ↔ Backoffice contract (source of truth)
+src/modules/auth/device.service.ts     ← Device enrollment + resolveToken (device_* format, 15-min TTL)
+tests/e2e/assistant-contract.spec.ts   ← Full Assistant integration flow (11 tests)
+scripts/load-test.js                   ← k6 load test: 6 scenarios incl. device-validate, submit-summary
 prisma/schema.prisma                   ← Full database schema (source of truth for DB)
 supabase/migrations/                   ← SQL migrations (RLS policies applied)
 .env.example                           ← All env vars documented
@@ -226,15 +250,15 @@ supabase/migrations/                   ← SQL migrations (RLS policies applied)
 ## 9. Known Technical Debt
 
 > Full backlog in `docs/BACKLOG.md`. Full debt tracker in `docs/TECHNICAL_DEBT.md`.
+> **All BACKLOG A–H items resolved as of 2026-03-04.** Next horizon: Assistant (Electron) integration.
 
-| Item                                     | File / Location                             | Priority | Backlog     |
-| ---------------------------------------- | ------------------------------------------- | -------- | ----------- |
-| `staleTime: 5_000` bug in 2 hooks        | `use-sessions.ts:27`, `use-summaries.ts:26` | 🔴 HIGH  | Fase A — A1 |
-| FSM action bar missing in echelon detail | `echelon-detail-content.tsx:302`            | 🔴 HIGH  | Fase A — A3 |
-| 23+ `useMutation` hooks missing          | `src/hooks/`                                | 🟡 MED   | Fase B      |
-| Notifications bell (🔔) unimplemented    | `header.tsx`                                | 🟡 MED   | Fase D — D1 |
-| Dark/light mode toggle not in UI         | `header.tsx`                                | 🟡 MED   | Fase G — G1 |
-| Sentry Vercel Integration (sourcemaps)   | Vercel project settings                     | 🟢 LOW   | Fase H — H4 |
+| Item                                                  | File / Location                                | Priority | Phase   |
+| ----------------------------------------------------- | ---------------------------------------------- | -------- | ------- |
+| Deep link scheme for Electron app                     | `src/app/api/v1/echelons/[id]/launch/route.ts` | 🔴 HIGH  | Phase I |
+| Device token auto-renewal (15-min TTL)                | `src/modules/auth/device.service.ts`           | 🔴 HIGH  | Phase I |
+| First-time setup wizard (connect Electron→Backoffice) | TBD                                            | 🟡 MED   | Phase I |
+| Offline mode in Assistant (degraded vs blocking)      | Electron app                                   | 🟡 MED   | Phase I |
+| Sentry Vercel Integration (sourcemaps)                | Vercel project settings                        | 🟢 LOW   | Phase I |
 
 ---
 

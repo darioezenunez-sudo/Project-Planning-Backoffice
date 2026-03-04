@@ -5,6 +5,7 @@ import type { RouteContext } from '@/lib/middleware/compose';
 import { withAudit } from '@/lib/middleware/with-audit';
 import { withAuth } from '@/lib/middleware/with-auth';
 import { withErrorHandling } from '@/lib/middleware/with-error-handling';
+import { withRole } from '@/lib/middleware/with-role';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
@@ -45,6 +46,7 @@ export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
+  withRole('MANAGER'),
   withAudit('Company'),
 )(async (req: NextRequest, _context: RouteContext) => {
   const ctx = getRequestContext();

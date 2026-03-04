@@ -1,15 +1,28 @@
 import { createServerClient } from '@supabase/ssr';
 import type { NextRequest, NextResponse } from 'next/server';
 
+import { createDeviceRepository } from '@/modules/auth/device.repository';
+import { createDeviceService } from '@/modules/auth/device.service';
+
 import { getUserIdFromAuthCache, setAuthCache } from '../cache/auth-cache';
 import { AppError } from '../errors/app-error';
 import { ErrorCode } from '../errors/error-codes';
 import { handleError } from '../errors/error-handler';
 import { logger } from '../logger';
 import { generateRequestId, getRequestContext, runWithContext } from '../request-context';
+import { isErr } from '../result';
 import { createSupabaseServerClient } from '../supabase/server';
 
 import type { Middleware, RouteContext, RouteHandler } from './compose';
+
+let deviceServiceInstance: ReturnType<typeof createDeviceService> | null = null;
+
+function getDeviceService() {
+  if (!deviceServiceInstance) {
+    deviceServiceInstance = createDeviceService(createDeviceRepository());
+  }
+  return deviceServiceInstance;
+}
 
 /**
  * Validates the Supabase JWT and injects userId into the request context.
@@ -63,6 +76,15 @@ async function resolveUserId(req: NextRequest, requestId: string): Promise<strin
 }
 
 async function resolveFromBearer(token: string, requestId: string): Promise<string | undefined> {
+  if (token.startsWith('device_')) {
+    const result = await getDeviceService().resolveToken(token);
+    if (isErr(result)) {
+      logger.warn({ requestId, reason: result.error.message }, 'withAuth: invalid device token');
+      return undefined;
+    }
+    return result.value.userId;
+  }
+
   const cached = await getUserIdFromAuthCache(token);
   if (cached) return cached;
 

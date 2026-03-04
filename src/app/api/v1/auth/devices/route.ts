@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server';
 
+import { AppError } from '@/lib/errors/app-error';
+import { ErrorCode } from '@/lib/errors/error-codes';
 import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
 import { withAudit } from '@/lib/middleware/with-audit';
@@ -29,6 +31,19 @@ export const POST = compose(
 
   const body = (await req.json()) as unknown;
   const input = enrollDeviceSchema.parse(body);
+
+  // Fix O3: validate that userId in request body matches the authenticated user
+  const authenticatedUserId = ctx?.userId;
+  if (authenticatedUserId === undefined) {
+    throw new AppError(ErrorCode.UNAUTHORIZED, 401, 'Authentication required');
+  }
+  if (input.userId !== authenticatedUserId) {
+    throw new AppError(
+      ErrorCode.FORBIDDEN,
+      403,
+      'userId in request body must match the authenticated user',
+    );
+  }
 
   const result = await service.enroll(organizationId, input);
   if (!result.ok) throw result.error;

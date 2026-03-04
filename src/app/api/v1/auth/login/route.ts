@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+import { prisma } from '@/lib/prisma';
 import { loginSchema } from '@/schemas/user.schema';
 
 export async function POST(request: Request) {
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return NextResponse.json(
@@ -56,7 +57,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = NextResponse.json({ ok: true });
+  const session = authData.session;
+  const user = authData.user;
+  // After signInWithPassword success, session and user are defined (Supabase types)
+  const membership = await prisma.organizationMember.findFirst({
+    where: { userId: user.id },
+    select: { organizationId: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const response = NextResponse.json({
+    ok: true,
+    data: {
+      accessToken: session.access_token,
+      user: {
+        id: user.id,
+        organizationId: membership?.organizationId ?? '',
+      },
+    },
+  });
 
   // Forward Supabase session cookies to the browser.
   pendingCookies.forEach(({ name, value, options }) => {

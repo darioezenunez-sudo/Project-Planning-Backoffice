@@ -57,7 +57,8 @@ export function createDeviceService(repo: DeviceRepository) {
     await repo.updateLastSeenAt(machineId, orgId);
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    const accessToken = `device_${machineId}_${orgId}_${String(expiresAt.getTime())}`;
+    // Delimiter | avoids ambiguity when machineId contains underscores
+    const accessToken = `device_${machineId}|${orgId}|${String(expiresAt.getTime())}`;
 
     return ok({
       device,
@@ -84,7 +85,41 @@ export function createDeviceService(repo: DeviceRepository) {
     return ok(device);
   }
 
-  return { list, enroll, validate, revoke, getById };
+  /**
+   * Validates a device access token (format: device_${machineId}|${orgId}|${expiresAtMs})
+   * and returns userId + organizationId for use by withAuth.
+   * Pipe delimiter avoids ambiguity when machineId contains underscores.
+   */
+  async function resolveToken(
+    token: string,
+  ): Promise<Result<{ userId: string; organizationId: string }>> {
+    if (!token.startsWith('device_')) {
+      return err(new AppError(ErrorCode.UNAUTHORIZED, 401, 'Invalid token'));
+    }
+    const payload = token.slice(7);
+    const parts = payload.split('|');
+    if (parts.length !== 3) {
+      return err(new AppError(ErrorCode.UNAUTHORIZED, 401, 'Invalid device token'));
+    }
+    const [machineId, organizationId, expiresAtStr] = parts;
+    const expiresAtMs = Number(expiresAtStr);
+    if (!Number.isFinite(expiresAtMs) || !organizationId || !machineId) {
+      return err(new AppError(ErrorCode.UNAUTHORIZED, 401, 'Invalid device token'));
+    }
+    if (Date.now() > expiresAtMs) {
+      return err(new AppError(ErrorCode.UNAUTHORIZED, 401, 'Device token expired'));
+    }
+    const device = await repo.findByMachineIdAndOrg(machineId, organizationId);
+    if (device === null) {
+      return err(new AppError(ErrorCode.UNAUTHORIZED, 401, 'Device not found'));
+    }
+    if (device.revokedAt !== null) {
+      return err(new AppError(ErrorCode.FORBIDDEN, 403, 'Device has been revoked'));
+    }
+    return ok({ userId: device.userId, organizationId: device.organizationId });
+  }
+
+  return { list, enroll, validate, revoke, getById, resolveToken };
 }
 
 export type DeviceService = ReturnType<typeof createDeviceService>;

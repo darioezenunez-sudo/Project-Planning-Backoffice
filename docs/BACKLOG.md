@@ -1,23 +1,24 @@
 # Product Backlog — Project-Planning Backoffice
 
-> **Versión:** 1.1 | **Creado:** 2026-03-02 | **Actualizado:** 2026-03-03 | **Branch:** develop
+> **Versión:** 1.3 | **Creado:** 2026-03-02 | **Actualizado:** 2026-03-04 | **Branch:** develop
 > Issues identificados post-Fase 7. Organizados en fases de implementación por prioridad e impacto.
-> Estado actual del sistema: 334 unit tests · 26/26 E2E · Fase H (H1–H4) completada · lint corregido en pantallas/hooks
+> Estado actual del sistema: 339 unit tests · 36/38 E2E passing · Fases A–H completas · RBAC hardening completo · device token en withAuth
 
 ---
 
 ## Índice de Fases
 
-| Fase                                       | Nombre            | Impacto    | Esfuerzo estimado |
-| ------------------------------------------ | ----------------- | ---------- | ----------------- |
-| [A](#fase-a--quick-wins)                   | Quick Wins        | Alto       | < 1 sesión        |
-| [B](#fase-b--mutation-hooks)               | Mutation Hooks    | Alto       | 2–3 sesiones      |
-| [C](#fase-c--conectar-botones-a-mutations) | Conectar Botones  | Alto       | 2–3 sesiones      |
-| [D](#fase-d--ux-flows)                     | UX Flows          | Medio-Alto | 3–4 sesiones      |
-| [E](#fase-e--user-management)              | User Management   | Medio      | 2 sesiones        |
-| [F](#fase-f--rich-content)                 | Rich Content      | Medio      | 3–4 sesiones      |
-| [G](#fase-g--branding--visual)             | Branding & Visual | Medio      | 2–3 sesiones      |
-| [H](#fase-h--realtime--infra)              | Realtime & Infra  | Bajo-Medio | 2–3 sesiones      |
+| Fase                                       | Nombre                | Impacto    | Esfuerzo estimado | Estado       |
+| ------------------------------------------ | --------------------- | ---------- | ----------------- | ------------ |
+| [A](#fase-a--quick-wins)                   | Quick Wins            | Alto       | < 1 sesión        | ✅ Completo  |
+| [B](#fase-b--mutation-hooks)               | Mutation Hooks        | Alto       | 2–3 sesiones      | ✅ Completo  |
+| [C](#fase-c--conectar-botones-a-mutations) | Conectar Botones      | Alto       | 2–3 sesiones      | ✅ Completo  |
+| [D](#fase-d--ux-flows)                     | UX Flows              | Medio-Alto | 3–4 sesiones      | ✅ Completo  |
+| [E](#fase-e--user-management)              | User Management       | Medio      | 2 sesiones        | ✅ Completo  |
+| [F](#fase-f--rich-content)                 | Rich Content          | Medio      | 3–4 sesiones      | ✅ Completo  |
+| [G](#fase-g--branding--visual)             | Branding & Visual     | Medio      | 2–3 sesiones      | ✅ Completo  |
+| [H](#fase-h--realtime--infra)              | Realtime & Infra      | Bajo-Medio | 2–3 sesiones      | ✅ Completo  |
+| [I](#fase-i--assistant-integration)        | Assistant Integration | CRÍTICO    | 4–6 sesiones      | ⏳ Pendiente |
 
 ---
 
@@ -591,29 +592,122 @@ Para todas las mutations:
 
 ---
 
+---
+
+## Fase I — Assistant Integration
+
+> Conectar el Data Plane (Electron app) al Control Plane (este backoffice). **CRÍTICO para MVP.**
+> Referencia: `docs/FUNCTIONAL_ANALYSIS.md` §5 (flujo completo), `src/contracts/assistant-api.ts` (contrato Zod).
+
+### I1 — Deep link scheme y recepción en Electron
+
+**Tipo:** Feature | **Prioridad:** 🔴 ALTA | **Esfuerzo:** 2–3h
+
+**Descripción:** El backoffice genera `deepLinkUrl` en `POST /echelons/:id/launch` con el formato:
+`${APP_URL}/echelon/${echelonId}?contextVersion=${bundle.version}`. El Electron app debe:
+
+1. Registrar el protocolo URL custom (e.g. `assistant://`) en el OS
+2. Parsear el deep link al recibirlo y extraer `echelonId` + `contextVersion`
+3. Llamar a `GET /api/v1/context/:echelonId` con el Bearer device token y `X-Organization-Id`
+
+**Archivos Backoffice:** `src/app/api/v1/echelons/[id]/launch/route.ts`
+
+---
+
+### I2 — Device token auto-renewal en Electron
+
+**Tipo:** Feature | **Prioridad:** 🔴 ALTA | **Esfuerzo:** 1–2h
+
+**Descripción:** El device token expira en 15 minutos (definido en `device.service.ts`). El Electron app debe:
+
+1. Almacenar el `machineId` localmente (keychain/secure storage)
+2. Antes de cada request, verificar si el token está próximo a expirar
+3. Si expira en < 2min, llamar `GET /api/v1/auth/devices/:machineId` (sin auth) para obtener nuevo token
+4. Reintentar el request original con el nuevo token
+
+**Archivos Backoffice:** `src/app/api/v1/auth/devices/[machineId]/route.ts`
+
+---
+
+### I3 — First-time setup wizard (enrolamiento inicial)
+
+**Tipo:** Feature | **Prioridad:** 🔴 ALTA | **Esfuerzo:** 3–4h
+
+**Descripción:** La primera vez que el usuario instala el Electron app en un dispositivo:
+
+1. El usuario autentica con sus credenciales (user JWT vía `POST /auth/login`)
+2. El app llama `POST /auth/devices` con `machineId` (generado), `userId`, `osInfo`
+3. Se almacena el device token en keychain/secure storage
+4. En arranques siguientes, solo necesita `GET /auth/devices/:machineId` (sin credenciales)
+
+**Decisiones pendientes:** ¿URL del backoffice hardcodeada o configurable en settings?
+
+---
+
+### I4 — Envío de Summary desde Electron
+
+**Tipo:** Feature | **Prioridad:** 🔴 ALTA | **Esfuerzo:** 2h
+
+**Descripción:** Tras concluir una sesión de trabajo con el LLM:
+
+1. `POST /sessions/:id/summary` con `rawContent` + `Idempotency-Key` (UUID generado por el Electron)
+2. Verificar respuesta y estado FSM (DRAFT)
+3. Auto-retry si 503/timeout (idempotencia garantiza seguridad del retry)
+
+**Contrato:** `src/contracts/assistant-api.ts` → `createSummarySchema`
+
+---
+
+### I5 — Registro de uso de tokens LLM
+
+**Tipo:** Feature | **Prioridad:** 🟡 MED | **Esfuerzo:** 1h
+
+**Descripción:** Tras cada llamada al LLM local en el Electron app:
+
+1. `POST /usage` con `monthYear`, `tokens`, `model`, `echelonId` + `Idempotency-Key`
+2. Idempotencia garantiza que retries no dupliquen el registro
+
+**Contrato:** `src/contracts/assistant-api.ts` → `createUsageSchema`
+
+---
+
+### I6 — Manejo offline (modo degradado)
+
+**Tipo:** Feature | **Prioridad:** 🟡 MED | **Esfuerzo:** 2–3h
+
+**Descripción:** Definir comportamiento cuando el Electron app no puede alcanzar el Backoffice:
+
+- **Opción A:** Bloquear — el app muestra error y no permite continuar sin conexión
+- **Opción B:** Modo degradado — permite continuar con el último contexto cacheado; sincroniza al reconectar
+
+**Decisión pendiente:** Definir con el equipo de producto antes de implementar.
+
+---
+
 ## Estado de implementación (checklist)
 
-> Orden del backlog: **A → B → C → D → E → F → G → H**; dentro de cada fase por número de ítem (A1, A2, …).  
-> C depende de B (botones usan mutation hooks). Actualizado: 2026-03-03.
+> Orden del backlog: **A → B → C → D → E → F → G → H → I**. Actualizado: 2026-03-04.
 
 ### Hecho
 
-| Fase | Ítems                              |
-| ---- | ---------------------------------- |
-| A    | A1, A2, A3, A4                     |
-| B    | B1, B2, B3, B4, B5, B6, B7, B8, B9 |
-| C    | C1, C2, C3, C4                     |
-| D    | D1, D2, D3, D4, D5                 |
-| E    | E1, E2                             |
-| F    | F1, F2, F3, F4                     |
-| G    | G1, G2, G3, G4                     |
-| H    | H1, H2, H3, H4, H5                 |
+| Fase | Ítems                              | Completado |
+| ---- | ---------------------------------- | ---------- |
+| A    | A1, A2, A3, A4                     | 2026-03-03 |
+| B    | B1, B2, B3, B4, B5, B6, B7, B8, B9 | 2026-03-03 |
+| C    | C1, C2, C3, C4                     | 2026-03-03 |
+| D    | D1, D2, D3, D4, D5                 | 2026-03-03 |
+| E    | E1, E2                             | 2026-03-03 |
+| F    | F1, F2, F3, F4                     | 2026-03-03 |
+| G    | G1, G2, G3, G4                     | 2026-03-03 |
+| H    | H1, H2, H3, H4, H5                 | 2026-03-03 |
 
 ### Pendiente
 
-_(Ninguno en esta versión.)_
+| Fase | Ítems                  | Prioridad  |
+| ---- | ---------------------- | ---------- |
+| I    | I1, I2, I3, I4, I5, I6 | 🔴 CRÍTICO |
 
-**Resumen:** Hecho A1–A4, B1–B9, C1–C4, D1–D5, E1–E2, F1–F4, G1–G4, H1–H5.
+**Resumen:** Hecho A1–A4, B1–B9, C1–C4, D1–D5, E1–E2, F1–F4, G1–G4, H1–H5. Pendiente: I1–I6 (Assistant integration).
 
 ---
 

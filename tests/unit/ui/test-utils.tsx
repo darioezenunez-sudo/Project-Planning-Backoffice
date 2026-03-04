@@ -10,6 +10,8 @@ const defaultMessages = {
     password: 'Contraseña',
     forgotPassword: '¿Olvidaste tu contraseña?',
     noAccess: 'No tenés acceso, contactá al administrador.',
+    noAccount: '¿No tenés cuenta?',
+    register: 'Registrarse',
   },
   common: {
     loading: 'Cargando...',

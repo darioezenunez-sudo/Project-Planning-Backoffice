@@ -4,6 +4,7 @@ import { compose } from '@/lib/middleware/compose';
 import type { RouteContext } from '@/lib/middleware/compose';
 import { withAuth } from '@/lib/middleware/with-auth';
 import { withErrorHandling } from '@/lib/middleware/with-error-handling';
+import { withRole } from '@/lib/middleware/with-role';
 import { withTenant } from '@/lib/middleware/with-tenant';
 import { getRequestContext } from '@/lib/request-context';
 import { apiSuccess } from '@/lib/utils/api-response';
@@ -40,6 +41,7 @@ export const POST = compose(
   withErrorHandling,
   withAuth,
   withTenant,
+  withRole('MANAGER'),
 )(async (_req: NextRequest, context: RouteContext) => {
   const echelonId = await resolveEchelonId(context);
   const ctx = getRequestContext();
