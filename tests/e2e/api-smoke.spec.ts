@@ -39,11 +39,11 @@ async function authenticate(request: APIRequestContext): Promise<AuthContext> {
   const orgId = me.data.memberships[0]?.organizationId ?? '';
   expect(orgId, 'Debe existir al menos un membership').toBeTruthy();
 
-  // Obtener access token para rutas que aceptan Bearer
+  // Obtener access token para rutas que aceptan Bearer (login devuelve data.accessToken o session.access_token)
   const loginBody = (await loginRes.json()) as {
-    data?: { session?: { access_token?: string } };
+    data?: { accessToken?: string; session?: { access_token?: string } };
   };
-  const accessToken = loginBody.data?.session?.access_token ?? '';
+  const accessToken = loginBody.data?.accessToken ?? loginBody.data?.session?.access_token ?? '';
 
   return { request, orgId, accessToken };
 }

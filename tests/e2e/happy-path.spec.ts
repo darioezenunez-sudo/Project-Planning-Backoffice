@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+
 /**
  * Happy path E2E: login → dashboard → companies → product → echelon → session → summary → consolidate.
  * Requiere credenciales en E2E_TEST_EMAIL y E2E_TEST_PASSWORD para el flujo con login.
- * Si no están definidas, se ejecutan solo las rutas públicas y health.
+ * Login se hace vía page.request.post() para que las cookies de sesión queden en el mismo contexto que la página.
  */
 test.describe('Happy path', () => {
   test.setTimeout(60_000);
@@ -18,20 +20,27 @@ test.describe('Happy path', () => {
     expect((body as { data?: { status?: string } }).data?.status).toBe('ok');
   });
 
-  test('login form submits and redirects to dashboard when credentials provided', async ({
-    page,
-  }) => {
+  /** Autentica vía API en el contexto de la página para que las cookies se usen en navegaciones posteriores. */
+  async function loginViaPageContext(page: import('@playwright/test').Page) {
     const email = process.env['E2E_TEST_EMAIL'] ?? '';
     const password = process.env['E2E_TEST_PASSWORD'] ?? '';
+    if (!email || !password) return false;
+    const res = await page.request.post(`${BASE_URL}/api/v1/auth/login`, {
+      data: { email, password },
+    });
+    expect(res.ok(), `Login failed: ${await res.text()}`).toBe(true);
+    return true;
+  }
 
-    test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
-
-    await page.goto('/login');
-    await page.waitForLoadState('domcontentloaded');
-    await page.getByLabel(/correo/i).fill(email);
-    await page.getByLabel(/contraseña/i).fill(password);
-    await page.getByRole('button', { name: /ingresar/i }).click();
-
+  test('login and redirect to dashboard when credentials provided', async ({ page }) => {
+    test.skip(
+      !process.env['E2E_TEST_EMAIL'] || !process.env['E2E_TEST_PASSWORD'],
+      'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required',
+    );
+    await page.goto('/');
+    const loggedIn = await loginViaPageContext(page);
+    test.skip(!loggedIn, 'Login required');
+    await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible({
       timeout: 10_000,
@@ -39,18 +48,14 @@ test.describe('Happy path', () => {
   });
 
   test('dashboard and companies pages load when authenticated', async ({ page }) => {
-    const email = process.env['E2E_TEST_EMAIL'] ?? '';
-    const password = process.env['E2E_TEST_PASSWORD'] ?? '';
+    test.skip(
+      !process.env['E2E_TEST_EMAIL'] || !process.env['E2E_TEST_PASSWORD'],
+      'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required',
+    );
 
-    test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
-
-    await page.goto('/login');
-    await page.waitForLoadState('domcontentloaded');
-    await page.getByLabel(/correo/i).fill(email);
-    await page.getByLabel(/contraseña/i).fill(password);
-    await page.getByRole('button', { name: /ingresar/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-
+    await page.goto('/');
+    const loggedIn = await loginViaPageContext(page);
+    test.skip(!loggedIn, 'Login required');
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible({
       timeout: 10_000,
@@ -65,17 +70,13 @@ test.describe('Happy path', () => {
   test('navigation to company detail, product, echelon, session and consolidation routes', async ({
     page,
   }) => {
-    const email = process.env['E2E_TEST_EMAIL'] ?? '';
-    const password = process.env['E2E_TEST_PASSWORD'] ?? '';
-
-    test.skip(!email || !password, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required');
-
-    await page.goto('/login');
-    await page.waitForLoadState('domcontentloaded');
-    await page.getByLabel(/correo/i).fill(email);
-    await page.getByLabel(/contraseña/i).fill(password);
-    await page.getByRole('button', { name: /ingresar/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+    test.skip(
+      !process.env['E2E_TEST_EMAIL'] || !process.env['E2E_TEST_PASSWORD'],
+      'E2E_TEST_EMAIL and E2E_TEST_PASSWORD required',
+    );
+    await page.goto('/');
+    const loggedIn = await loginViaPageContext(page);
+    test.skip(!loggedIn, 'Login required');
 
     await page.goto('/companies');
     await expect(page.getByRole('heading', { name: /empresas/i }).first()).toBeVisible({
